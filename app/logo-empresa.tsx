@@ -14,16 +14,17 @@ export default function LogoEmpresa({tipo,id,nome,logoPath,onSaved}:Props){
   let ativo=true;
   async function carregar(){
    setUrl('');
+   setErro('');
    if(!logoPath&&version===0)return;
    const {data:{session}}=await supabase().auth.getSession();
    if(!session)return;
    const params=new URLSearchParams({tipo,id});
    const r=await fetch('/api/logos/visualizar?'+params,{headers:{Authorization:'Bearer '+session.access_token},cache:'no-store'});
-   if(!r.ok)return;
+   if(!r.ok){if(ativo)setErro('Não foi possível carregar o logotipo salvo.');return;}
    const body=await r.json();
-   if(ativo)setUrl(body.url||'');
+   if(ativo){setUrl(body.url||'');if(!body.url)setErro('Imagem não disponível.');}
   }
-  carregar().catch(()=>{});
+  carregar().catch(()=>{if(ativo)setErro('Falha ao carregar o logotipo.');});
   return()=>{ativo=false};
  },[tipo,id,logoPath,version]);
  async function salvar(){
@@ -46,7 +47,7 @@ export default function LogoEmpresa({tipo,id,nome,logoPath,onSaved}:Props){
   finally{setBusy(false)}
  }
  return <div style={{minWidth:190,display:'grid',gap:6}}>
-  {url?<img src={url} alt={'Logotipo de '+nome} style={{maxWidth:120,maxHeight:65,objectFit:'contain'}}/>:<span className="muted">Sem logotipo</span>}
+  {url?<img src={url} alt={'Logotipo de '+nome} style={{maxWidth:120,maxHeight:65,objectFit:'contain'}} onError={()=>{setUrl('');setErro('A imagem não pôde ser exibida. Atualize a página.')}}/>:<span className="muted">Sem logotipo</span>}
   <input aria-label={'Selecionar logo de '+nome} type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setArquivo(e.target.files?.[0]||null)} style={{maxWidth:185}}/>
   <button type="button" disabled={!arquivo||busy} onClick={salvar}>{busy?'Enviando...':url?'Substituir logo':'Salvar logo'}</button>
   {erro&&<small role="alert" className="error">{erro}</small>}
