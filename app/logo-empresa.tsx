@@ -2,8 +2,8 @@
 import {useEffect,useState} from 'react';
 import {supabase} from '../lib/supabase';
 
-type Props={tipo:'consultoria'|'cliente';id:string;nome:string;logoPath?:string|null};
-export default function LogoEmpresa({tipo,id,nome,logoPath}:Props){
+type Props={tipo:'consultoria'|'cliente';id:string;nome:string;logoPath?:string|null;onSaved?:()=>void};
+export default function LogoEmpresa({tipo,id,nome,logoPath,onSaved}:Props){
  const [url,setUrl]=useState('');
  const [arquivo,setArquivo]=useState<File|null>(null);
  const [busy,setBusy]=useState(false);
@@ -41,7 +41,7 @@ export default function LogoEmpresa({tipo,id,nome,logoPath}:Props){
    const r=await fetch('/api/logos',{method:'POST',headers:{Authorization:'Bearer '+session.access_token},body:form});
    const data=await r.json();
    if(!r.ok)throw new Error(data.error||'Erro no envio');
-   setSucesso('Logo atualizado.');setArquivo(null);setVersion(v=>v+1);
+   setSucesso('Logo atualizado.');setArquivo(null);setVersion(v=>v+1);onSaved?.();
   }catch(e){setErro(e instanceof Error?e.message:'Falha ao enviar imagem')}
   finally{setBusy(false)}
  }
