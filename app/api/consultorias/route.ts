@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
       data: { nome },
-      redirectTo: new URL('/', request.nextUrl.origin).toString()
+      redirectTo: 'https://portal-nr17.vercel.app/ativar-conta'
     });
     if (inviteError || !invited.user) {
       await admin.from('consultorias').delete().eq('id', created.id);
