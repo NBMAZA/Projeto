@@ -40,7 +40,7 @@ export async function POST(req:NextRequest,ctx:Context){
   if(!nome||nome.length>150||!/^\S+@\S+\.\S+$/.test(email)||email.length>254)return NextResponse.json({error:'Informe nome e e-mail válidos'},{status:400});
   const {data:consultoria,error:ce}=await admin.from('consultorias').select('id').eq('id',id).maybeSingle();
   if(ce||!consultoria)return NextResponse.json({error:'Consultoria não encontrada'},{status:404});
-  const {data:invited,error:ie}=await admin.auth.admin.inviteUserByEmail(email,{data:{nome},redirectTo:new URL('/',req.nextUrl.origin).toString()});
+  const {data:invited,error:ie}=await admin.auth.admin.inviteUserByEmail(email,{data:{nome},redirectTo:'https://portal-nr17.vercel.app/ativar-conta'});
   if(ie||!invited.user)return NextResponse.json({error:ie?.message||'Não foi possível enviar o convite. Se o e-mail já possui conta, contate o suporte para vinculação segura.'},{status:400});
   const {error:le}=await admin.from('usuarios_consultoria').insert({consultoria_id:id,usuario_id:invited.user.id,perfil:'admin_consultoria'});
   if(le)return NextResponse.json({error:'Convite enviado, mas vínculo não concluído. Contate o suporte antes de reenviar.'},{status:500});
