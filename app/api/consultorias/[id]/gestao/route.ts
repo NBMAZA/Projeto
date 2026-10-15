@@ -26,7 +26,8 @@ export async function GET(req:NextRequest,ctx:Context){
   ]);
   if(c.error||clients.error||users.error)return NextResponse.json({error:c.error?.message||clients.error?.message||users.error?.message},{status:400});
   if(!c.data)return NextResponse.json({error:'Consultoria não encontrada'},{status:404});
-  return NextResponse.json({consultoria:c.data,clientes:clients.data||[],administradores:users.data||[]});
+  const administradores=await Promise.all((users.data||[]).map(async (v)=>{const {data,error}=await admin.auth.admin.getUserById(v.usuario_id);const u=error?null:data.user;return {usuario_id:v.usuario_id,perfil:v.perfil,nome:typeof u?.user_metadata?.nome==='string'?u.user_metadata.nome:'',email:u?.email||''};}));
+  return NextResponse.json({consultoria:c.data,clientes:clients.data||[],administradores});
  }catch{return NextResponse.json({error:'Erro ao consultar consultoria'},{status:500})}
 }
 export async function POST(req:NextRequest,ctx:Context){
