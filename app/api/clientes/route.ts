@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     }).select('id').single();
     if(createError||!created)return NextResponse.json({error:createError?.message||'Falha ao criar cliente'},{status:400});
     const {data:invited,error:inviteError}=await admin.auth.admin.inviteUserByEmail(email,{
-      data:{nome},redirectTo:new URL('/',req.nextUrl.origin).toString()
+      data:{nome},redirectTo:'https://portal-nr17.vercel.app/ativar-conta'
     });
     if(inviteError||!invited.user){
       await admin.from('clientes').delete().eq('id',created.id);
