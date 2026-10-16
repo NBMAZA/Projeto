@@ -15,16 +15,33 @@ export default function AtivarConta(){
   const auth=supabase().auth;
   const {data:{subscription}}=auth.onAuthStateChange((_evento,session)=>{
    if(!ativo)return;
-   setAutorizado(!!session);
-   if(session)setErro('');
-   setPronto(true);
+   if(session){setAutorizado(true);setErro('');setPronto(true)}
   });
-  auth.getSession().then(({data:{session},error})=>{
-   if(!ativo)return;
-   setAutorizado(!!session);
-   if(error)setErro('Não foi possível validar o convite. Solicite um novo convite.');
-   setPronto(true);
-  }).catch(()=>{if(ativo){setErro('Não foi possível validar o convite.');setPronto(true)}});
+  async function validar(){
+   try{
+    // Convites Supabase podem entregar a sessão no fragmento da URL.
+    // Processar explicitamente evita uma condição de corrida com getSession().
+    const fragmento=new URLSearchParams(window.location.hash.slice(1));
+    const erroLink=fragmento.get('error_description')||fragmento.get('error');
+    if(erroLink)throw new Error('O link de ativação expirou ou já foi utilizado. Solicite um novo convite.');
+    const access_token=fragmento.get('access_token');
+    const refresh_token=fragmento.get('refresh_token');
+    if(access_token&&refresh_token){
+     const {error}=await auth.setSession({access_token,refresh_token});
+     if(error)throw error;
+     // Retira os tokens do histórico e da barra de endereço após o uso.
+     window.history.replaceState(null,'',window.location.pathname+window.location.search);
+    }
+    const {data:{session},error}=await auth.getSession();
+    if(error)throw error;
+    if(!ativo)return;
+    setAutorizado(!!session);
+    if(!session)setErro('Não foi possível validar o convite. Verifique se o link está completo ou solicite um novo.');
+   }catch(e){
+    if(ativo){setAutorizado(false);setErro(e instanceof Error?e.message:'Não foi possível validar o convite.')}
+   }finally{if(ativo)setPronto(true)}
+  }
+  void validar();
   return()=>{ativo=false;subscription.unsubscribe()};
  },[]);
  async function concluir(e:FormEvent){
