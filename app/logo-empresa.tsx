@@ -2,8 +2,8 @@
 import {useEffect,useState} from 'react';
 import {supabase} from '../lib/supabase';
 
-type Props={tipo:'consultoria'|'cliente';id:string;nome:string;logoPath?:string|null;onSaved?:()=>void};
-export default function LogoEmpresa({tipo,id,nome,logoPath,onSaved}:Props){
+type Props={tipo:'consultoria'|'cliente';id:string;nome:string;logoPath?:string|null;onSaved?:()=>void;somenteLeitura?:boolean};
+export default function LogoEmpresa({tipo,id,nome,logoPath,onSaved,somenteLeitura=false}:Props){
  const [url,setUrl]=useState('');
  const [arquivo,setArquivo]=useState<File|null>(null);
  const [busy,setBusy]=useState(false);
@@ -48,8 +48,9 @@ export default function LogoEmpresa({tipo,id,nome,logoPath,onSaved}:Props){
  }
  return <div style={{minWidth:190,display:'grid',gap:6}}>
   {url?<img src={url} alt={'Logotipo de '+nome} style={{maxWidth:120,maxHeight:65,objectFit:'contain'}} onError={()=>{setUrl('');setErro('A imagem não pôde ser exibida. Atualize a página.')}}/>:<span className="muted">Sem logotipo</span>}
-  <input aria-label={'Selecionar logo de '+nome} type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setArquivo(e.target.files?.[0]||null)} style={{maxWidth:185}}/>
+  {!somenteLeitura&&<><input aria-label={'Selecionar logo de '+nome} type="file" accept="image/png,image/jpeg,image/webp" onChange={e=>setArquivo(e.target.files?.[0]||null)} style={{maxWidth:185}}/>
   <button type="button" disabled={!arquivo||busy} onClick={salvar}>{busy?'Enviando...':url?'Substituir logo':'Salvar logo'}</button>
+  </>}
   {erro&&<small role="alert" className="error">{erro}</small>}
   {sucesso&&<small role="status">{sucesso}</small>}
  </div>;
