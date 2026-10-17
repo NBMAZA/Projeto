@@ -36,8 +36,13 @@ return (
           <aside className="admin-menu">
             <h2>Consultoria</h2>
             <p>{nomeConsultoria||'Área da consultoria'}</p>
-            <button type="button" onClick={()=>setTelaConsultoria('painel')}>Painel inicial</button>
+            <button type="button" onClick={()=>setTelaConsultoria('painel')}>Visão geral</button>
             <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Clientes</button>
+            <a href="/plantas" style={{display:'block',padding:'10px 12px',border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:8}}>Plantas</a>
+            <p style={{marginTop:20,fontSize:12}}>Próximas etapas</p>
+            <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Estações de trabalho</span>
+            <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Avaliações ergonômicas</span>
+            <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Laudos</span>
           </aside>
           <div className="admin-main">
           {telaConsultoria==='painel' ? (
@@ -50,13 +55,13 @@ return (
                 </div>
                 <div className="grid" style={{marginBottom:24}}>
                   <div className="dashboard-kpi"><strong>{clienteItems.length}</strong><p>Clientes cadastrados</p></div>
-                  <div className="dashboard-kpi"><strong>—</strong><p>Plantas (em desenvolvimento)</p></div>
+                  <div className="dashboard-kpi"><strong>—</strong><p>Plantas cadastradas (acessar módulo)</p></div>
                   <div className="dashboard-kpi"><strong>—</strong><p>Estações de trabalho (em desenvolvimento)</p></div>
                   <div className="dashboard-kpi"><strong>—</strong><p>Laudos (em desenvolvimento)</p></div>
                 </div>
                 <h3>Módulos disponíveis</h3>
                 <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Módulo 02 — Gestão de Clientes</button>
-                <p>Plantas, estações de trabalho, diagnósticos, laudos e usuários serão disponibilizados conforme o desenvolvimento e as permissões.</p>
+                <p>Fluxo de coleta: Cliente → Planta → Instalação → Estação de trabalho → Avaliação ergonômica → Laudo. As etapas ainda não implementadas permanecem indisponíveis.</p>
               </>) : <p>Conta sem vínculo ativo de administrador de consultoria.</p>}
             </section>
           ) : (
