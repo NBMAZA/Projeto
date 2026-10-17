@@ -15,11 +15,15 @@ export async function GET(req:NextRequest){
   const admin=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
   const central=user.app_metadata?.role==='admin_central';
   if(!central){
-    if(tipo==='consultoria')return new NextResponse(null,{status:403});
+    if(tipo==='consultoria'){
+      const {data:vinculo}=await admin.from('usuarios_consultoria').select('id').eq('consultoria_id',id).eq('usuario_id',user.id).eq('perfil','admin_consultoria').eq('ativo',true).maybeSingle();
+      if(!vinculo)return new NextResponse(null,{status:403});
+    }else{
     const {data:cliente}=await admin.from('clientes').select('consultoria_id').eq('id',id).maybeSingle();
     if(!cliente)return new NextResponse(null,{status:404});
     const {data:vinculo}=await admin.from('usuarios_consultoria').select('id').eq('consultoria_id',cliente.consultoria_id).eq('usuario_id',user.id).eq('perfil','admin_consultoria').maybeSingle();
     if(!vinculo)return new NextResponse(null,{status:403});
+    }
   }
   const {data:record,error:readError}=await admin.from(table).select('logo_path').eq('id',id).maybeSingle();
   if(readError||!record?.logo_path)return new NextResponse(null,{status:404});
