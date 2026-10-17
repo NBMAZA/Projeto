@@ -42,6 +42,7 @@ return (
                 <label>E-mail do administrador</label><input type="email" required value={clienteAdmin.email} onChange={e=>setClienteAdmin(v=>({...v,email:e.target.value}))}/>
                 <button disabled={busy}>Cadastrar cliente e enviar convite</button>
               </form>
+              <p><a href="/plantas">Módulo 04 — Gerenciar plantas dos clientes</a></p>
               <h3>Clientes cadastrados</h3>
               <table><tbody>{clienteItems.map(c=><tr key={c.id}><td>{c.razao_social}</td><td>{c.cnpj}</td><td>{c.status}</td><td><LogoEmpresa tipo="cliente" id={c.id} nome={c.razao_social} logoPath={c.logo_path}/></td></tr>)}</tbody></table>
             </>
