@@ -38,7 +38,7 @@ return (
             <p>{nomeConsultoria||'Área da consultoria'}</p>
             <button type="button" onClick={()=>setTelaConsultoria('painel')}>Visão geral</button>
             <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Clientes</button>
-            <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Plantas (em preparação)</span>
+            <a href="/plantas" style={{display:'block',padding:'10px 12px',border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:8}}>Plantas e instalações</a>
             <p style={{marginTop:20,fontSize:12}}>Próximas etapas</p>
             <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Estações de trabalho</span>
             <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Avaliações ergonômicas</span>
@@ -55,13 +55,13 @@ return (
                 </div>
                 <div className="grid" style={{marginBottom:24}}>
                   <div className="dashboard-kpi"><strong>{clienteItems.length}</strong><p>Clientes cadastrados</p></div>
-                  <div className="dashboard-kpi"><strong>—</strong><p>Plantas (em preparação)</p></div>
+                  <div className="dashboard-kpi"><strong>—</strong><p>Plantas cadastradas</p></div>
                   <div className="dashboard-kpi"><strong>—</strong><p>Estações de trabalho (em desenvolvimento)</p></div>
                   <div className="dashboard-kpi"><strong>—</strong><p>Laudos (em desenvolvimento)</p></div>
                 </div>
                 <h3>Módulos disponíveis</h3>
                 <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Módulo 02 — Gestão de Clientes</button>
-                <p>Fluxo de coleta: Cliente → Planta → Instalação → Estação de trabalho → Avaliação ergonômica → Laudo. As etapas ainda não implementadas permanecem indisponíveis.</p>
+                <p>Fluxo de coleta: Cliente → Planta → Instalação → Estação de trabalho → Avaliação ergonômica → Laudo. O cadastro de plantas já está disponível; as próximas etapas serão implementadas progressivamente.</p>
               </>) : <p>Conta sem vínculo ativo de administrador de consultoria.</p>}
             </section>
           ) : (
