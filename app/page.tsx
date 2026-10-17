@@ -45,7 +45,7 @@ return (
               <h2>Módulo 01 — Painel da Consultoria</h2>
               {consultoriaAtual ? (<>
                 <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
-                  <LogoEmpresa tipo="consultoria" id={consultoriaAtual} nome={nomeConsultoria||'Consultoria'} logoPath={logoConsultoriaAtual}/>
+                  <LogoEmpresa tipo="consultoria" id={consultoriaAtual} nome={nomeConsultoria||'Consultoria'} logoPath={logoConsultoriaAtual} somenteLeitura/>
                   <div><h3 style={{margin:'0 0 4px'}}>{nomeConsultoria||'Minha consultoria'}</h3><p style={{margin:0}}>Visão geral da operação</p></div>
                 </div>
                 <div className="grid" style={{marginBottom:24}}>
