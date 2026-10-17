@@ -17,9 +17,12 @@ export async function POST(req: NextRequest) {
     const email=String(responsavel.email||'').trim().toLowerCase(),nome=String(responsavel.nome||'').trim();
     if(!/^[0-9a-f-]{36}$/i.test(consultoriaId)||!/^\d{14}$/.test(cnpj)||!String(cliente.razao_social||'').trim()||!nome||!/^\S+@\S+\.\S+$/.test(email))
       return NextResponse.json({error:'Informe consultoria, razão social, CNPJ, nome e e-mail do administrador.'},{status:400});
-    const {data:membership,error:memberError}=await auth.from('usuarios_consultoria').select('id').eq('consultoria_id',consultoriaId).eq('usuario_id',user.id).eq('perfil','admin_consultoria').maybeSingle();
-    if(user.app_metadata?.role!=='admin_central'&&(memberError||!membership))return NextResponse.json({error:'Sem permissão para esta consultoria.'},{status:403});
     const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
+    if(user.app_metadata?.role!=='admin_central'){
+      const {data:membership,error:memberError}=await admin.from('usuarios_consultoria').select('id').eq('consultoria_id',consultoriaId).eq('usuario_id',user.id).eq('perfil','admin_consultoria').eq('ativo',true).maybeSingle();
+      if(memberError)return NextResponse.json({error:'Não foi possível verificar a permissão da consultoria.'},{status:500});
+      if(!membership)return NextResponse.json({error:'Sem permissão para esta consultoria.'},{status:403});
+    }
     const {data:created,error:createError}=await admin.from('clientes').insert({
       consultoria_id:consultoriaId,razao_social:String(cliente.razao_social).trim(),nome_fantasia:String(cliente.nome_fantasia||'').trim(),
       cnpj,email:String(cliente.email||'').trim(),telefone:String(cliente.telefone||'').trim(),responsavel:String(cliente.responsavel||'').trim(),
