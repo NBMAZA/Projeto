@@ -50,7 +50,7 @@ return (
       ) : !user ? (
         <section><h2>Acesso administrativo</h2><form onSubmit={login}><label>E-mail</label><input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/><label>Senha</label><input type="password" required value={senha} onChange={e=>setSenha(e.target.value)}/><button disabled={busy}>Entrar</button></form></section>
       ) : !admin ? (
-        <div className="admin-shell">
+        <div className="admin-shell" style={{marginTop:-24}}>
           <aside className="admin-menu" style={{width:205,minWidth:205,flex:"0 0 205px",padding:14,boxSizing:"border-box"}}>
             <h2 style={{fontSize:17,marginBottom:6}}>Consultoria</h2>
             <p style={{fontSize:12,marginBottom:12,overflowWrap:"anywhere"}}>{nomeConsultoria||'Área da consultoria'}</p>
