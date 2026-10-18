@@ -57,7 +57,7 @@ return (
             <button type="button" onClick={()=>setTelaConsultoria('painel')}>Visão geral</button>
             <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Clientes</button>
             <a href="/plantas" style={{display:'block',padding:'10px 12px',border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:8}}>Plantas</a>
-            <a href="/instalacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Instalações</a><a href="/postos" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Postos de Trabalho</a><a href="/estacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Estações de Trabalho</a>
+            <a href="/instalacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Instalações</a><a href="/postos" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Postos de Trabalho</a><a href="/estacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Estações de Trabalho</a><a href="/avaliacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Avaliações Ergonômicas</a>
           </aside>
           <div className="admin-main">
           {telaConsultoria==='painel' ? (
