@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {supabase} from '../../lib/supabase';
+import {supabase} from '../../../lib/supabase';
 type Config={nome_modelo:string;cor_primaria:string;cor_secundaria:string;cabecalho:string;rodape:string;apresentacao:string};
 const padrao:Config={nome_modelo:'Modelo institucional',cor_primaria:'#173b65',cor_secundaria:'#1765a3',cabecalho:'',rodape:'Portal NR-17 · Documento institucional',apresentacao:''};
 export default function ConfiguracaoDocumentos(){const [consultoriaId,setConsultoriaId]=useState(''),[nome,setNome]=useState(''),[logo,setLogo]=useState(''),[config,setConfig]=useState<Config>(padrao),[versao,setVersao]=useState(1),[carregando,setCarregando]=useState(true),[salvando,setSalvando]=useState(false),[erro,setErro]=useState(''),[mensagem,setMensagem]=useState('');
