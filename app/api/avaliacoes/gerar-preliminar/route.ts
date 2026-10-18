@@ -1,6 +1,6 @@
 import {NextRequest,NextResponse} from 'next/server';
 import {createClient} from '@supabase/supabase-js';
-import {Document,Packer,Paragraph,TextRun,HeadingLevel,Table,TableRow,TableCell,WidthType} from 'docx';
+import {Document,Packer,Paragraph,TextRun,HeadingLevel,Table,TableRow,TableCell,WidthType,ImageRun} from 'docx';
 
 export const runtime='nodejs';
 export const maxDuration=60;
@@ -55,11 +55,11 @@ export async function POST(req:NextRequest){
    a.estacao_id?db.from('estacao_fotos').select('id,descricao,storage_path').eq('estacao_id',a.estacao_id).limit(30):Promise.resolve({data:[],error:null})
   ]);
   const fontesFotos=['Instalação','Posto de trabalho','Estação de trabalho'];
-  const evidencias:{id:string;origem:string;descricao:string;arquivo:string}[]=[];
+  const evidencias:{id:string;origem:string;descricao:string;arquivo:string;storage_path:string;bucket:string}[]=[];
   for(let n=0;n<fotosConsultas.length;n++){
    const result=fotosConsultas[n];
    if(result.error)return err('Não foi possível consultar as fotografias da avaliação: '+result.error.message,500);
-   for(const foto of result.data||[])evidencias.push({id:'F'+(evidencias.length+1),origem:fontesFotos[n],descricao:str(foto.descricao)||'Sem descrição cadastrada',arquivo:str(foto.storage_path).split('/').pop()||'Arquivo'});
+   for(const foto of result.data||[])evidencias.push({id:'F'+(evidencias.length+1),origem:fontesFotos[n],descricao:str(foto.descricao)||'Sem descrição cadastrada',arquivo:str(foto.storage_path).split('/').pop()||'Arquivo',storage_path:str(foto.storage_path),bucket:n===0?'instalacoes-fotos':'postos-fotos'});
   }
   const rastreabilidade=[
    {id:'R1',fonte:'Avaliação ergonômica',campo:'Atividade',registro:str(a.atividade)},
