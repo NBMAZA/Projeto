@@ -92,12 +92,24 @@ export async function POST(req:NextRequest){
   const evidenceRows=evidencias.length?evidencias.map(x=>[x.id,x.origem,x.descricao]):[['—','Sem registros fotográficos nas três tabelas consultadas','Não significa que não existam imagens em outras fontes']];
   const traceRows=rastreabilidade.filter(x=>x.registro.trim()).map(x=>[x.id,x.fonte+' — '+x.campo,x.registro.slice(0,900)]);
   const tab=(headers:string[],values:string[][])=>new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:[new TableRow({children:headers.map(h=>new TableCell({children:[new Paragraph({children:[new TextRun({text:h,bold:true})]})]}))}),...values.map(r=>new TableRow({children:r.map(cell)}))]});
+  const imagensWord:Paragraph[]=[];
+  const imagensIndisponiveis:string[]=[];
+  for(const foto of evidencias.slice(0,8)){
+   const tipo=/\.png$/i.test(foto.arquivo)?'png':/\.jpe?g$/i.test(foto.arquivo)?'jpg':null;
+   if(!tipo){imagensIndisponiveis.push(foto.id);continue}
+   const {data:arquivo,error:erroFoto}=await db.storage.from(foto.bucket).download(foto.storage_path);
+   if(erroFoto||!arquivo||arquivo.size>5*1024*1024){imagensIndisponiveis.push(foto.id);continue}
+   const bytes=new Uint8Array(await arquivo.arrayBuffer());
+   imagensWord.push(para(foto.id+' — '+foto.origem+' — '+foto.descricao));
+   imagensWord.push(new Paragraph({children:[new ImageRun({type:tipo,data:bytes,transformation:{width:420,height:280},altText:{title:foto.id,description:foto.descricao,name:foto.id}})]}));
+  }
   const children=[
    new Paragraph({children:[new TextRun({text:'RASCUNHO GERADO POR IA — PENDENTE DE REVISÃO TÉCNICA',bold:true,color:'A12A2A'})],spacing:{after:200}}),
    new Paragraph({text:cfg?.cabecalho||co?.nome_fantasia||'Portal NR-17',heading:HeadingLevel.HEADING_1}),
    new Paragraph({text:'Relatório preliminar — '+str(a.tipo),heading:HeadingLevel.HEADING_2}),
    new Table({width:{size:100,type:WidthType.PERCENTAGE},rows:rows.map(([k,v])=>new TableRow({children:[cell(k),cell(v)]}))}),
    title('Inventário de fotografias cadastradas'),para('Inventário de metadados consultados no Portal. A IA não inspecionou visualmente as imagens; descrições não são validação fotográfica.'),tab(['ID','Origem','Descrição cadastrada'],evidenceRows),
+   title('Fotografias anexadas para revisão humana'),para('As imagens foram anexadas para inspeção pelo responsável técnico; a IA não analisou seu conteúdo visual.'),...(imagensWord.length?imagensWord:[para('Não há imagens incorporadas nesta versão.')]),...(imagensIndisponiveis.length?[para('Fotografias não incorporadas: '+imagensIndisponiveis.join(', '))]:[]),
    title('Rastreabilidade das informações'),para('Registros extraídos do Portal. O conteúdo reflete informações cadastradas e requer conferência pelo responsável técnico.'),...(traceRows.length?[tab(['ID','Fonte / campo','Registro'],traceRows)]:[para('Nenhum registro textual disponível para rastreabilidade.')]),
    ...sectionsOrder.flatMap(([key,label])=>[title(label),para(str(sections[key])||'Não foi possível elaborar esta seção com os dados disponíveis.')]),
    title('Plano de ação preliminar — sujeito à validação'),tab(['Ação proposta','Prioridade','Responsável','Prazo'],[['Verificar adequação da cadeira e ajustes disponíveis','A definir após inspeção','A definir','A definir'],['Verificar posição do notebook e acessórios necessários','A definir após inspeção','A definir','A definir'],['Levantar duração, frequência e pausas das atividades','A definir após entrevista','A definir','A definir']]),
