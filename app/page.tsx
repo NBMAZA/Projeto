@@ -41,8 +41,8 @@ return (
             <p>{nomeConsultoria||'Área da consultoria'}</p>
             <button type="button" onClick={()=>setTelaConsultoria('painel')}>Visão geral</button>
             <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Clientes</button>
-            <a href="/plantas" style={{display:'block',padding:'10px 12px',border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:8}}>Plantas e instalações</a>
-            <p style={{marginTop:20,fontSize:12}}>Próximas etapas</p>
+            <a href="/plantas" style={{display:'block',padding:'10px 12px',border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:8}}>Plantas</a>
+            <p style={{marginTop:20,fontSize:12}}>Próximas etapas</p><span style={{display:"block",opacity:.7,padding:"8px 12px"}}>Módulo 04 — Instalações (em desenvolvimento)</span>
             <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Estações de trabalho</span>
             <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Avaliações ergonômicas</span>
             <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Laudos</span>
