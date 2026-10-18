@@ -42,10 +42,7 @@ return (
             <button type="button" onClick={()=>setTelaConsultoria('painel')}>Visão geral</button>
             <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Clientes</button>
             <a href="/plantas" style={{display:'block',padding:'10px 12px',border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:8}}>Plantas</a>
-            <p style={{marginTop:20,fontSize:12}}>Próximas etapas</p><a href="/instalacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Módulo 04 — Instalações</a>
-            <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Estações de trabalho</span>
-            <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Avaliações ergonômicas</span>
-            <span style={{display:'block',opacity:.7,padding:'8px 12px'}}>Laudos</span>
+            <a href="/instalacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Instalações</a>
           </aside>
           <div className="admin-main">
           {telaConsultoria==='painel' ? (
@@ -66,7 +63,7 @@ return (
                 <button type="button" onClick={()=>{carregarClientes().catch(e=>setErro(e.message));carregarIndicadores().catch(()=>setErroIndicadores('Não foi possível atualizar os indicadores.'))}}>Atualizar indicadores</button>
                 <h3>Módulos disponíveis</h3>
                 <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Módulo 02 — Gestão de Clientes</button>
-                <p>Fluxo de coleta: Cliente → Planta → Instalação → Estação de trabalho → Avaliação ergonômica → Laudo. O cadastro de plantas já está disponível; as próximas etapas serão implementadas progressivamente.</p>
+                <p>Fluxo de trabalho: Cliente → Planta → Instalação → Posto de trabalho → Estação de trabalho (quando necessária) → Avaliação ergonômica → Laudo.</p>
               </>) : <p>Conta sem vínculo ativo de administrador de consultoria.</p>}
             </section>
           ) : (
