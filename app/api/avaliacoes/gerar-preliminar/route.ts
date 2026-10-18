@@ -12,7 +12,7 @@ const cell=(s:string)=>new TableCell({children:[para(s)]});
 
 export async function POST(req:NextRequest){
  try{
-  const token=req.headers.get('authorization')?.replace(/^Bearer\\s+/i,'');
+  const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'');
   if(!token)return err('Sessão não informada.',401);
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY||process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
