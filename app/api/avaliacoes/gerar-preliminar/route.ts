@@ -8,7 +8,7 @@ const str=(v:unknown)=>typeof v==='string'?v:'';
 const err=(message:string,status=400)=>NextResponse.json({error:message},{status});
 const title=(s:string)=>new Paragraph({text:s,heading:HeadingLevel.HEADING_2,spacing:{before:260,after:120}});
 const para=(s:string)=>new Paragraph({text:s||'Não informado',spacing:{after:130}});
-const cell=(s:string)=>new TableCell({children:[para(s)]});
+const cell=(s:string)=>new TableCell({children:[new Paragraph({text:s,spacing:{after:80}})]});
 
 const imageDimensions=(b:Uint8Array):{width:number;height:number}|null=>{
  if(b.length<24)return null;
@@ -111,8 +111,8 @@ export async function POST(req:NextRequest){
    const ratio=dim&&dim.width>0&&dim.height>0?dim.width/dim.height:1.5;
    const width=ratio>=1?420:Math.min(280,420*ratio);
    const height=width/ratio;
-   imagensWord.push(para(foto.id+' — '+foto.origem+' — '+foto.descricao));
-   imagensWord.push(new Paragraph({children:[new ImageRun({type:tipo,data:bytes,transformation:{width:Math.round(width),height:Math.round(height)},altText:{title:foto.id,description:foto.descricao,name:foto.id}})]}));
+   imagensWord.push(new Paragraph({text:foto.id+' — '+foto.origem+' — '+foto.descricao,keepNext:true,spacing:{before:180,after:60}}));
+   imagensWord.push(new Paragraph({keepTogether:true,children:[new ImageRun({type:tipo,data:bytes,transformation:{width:Math.round(width),height:Math.round(height)},altText:{title:foto.id,description:foto.descricao,name:foto.id}})]}));
   }
   const children=[
    new Paragraph({children:[new TextRun({text:'RASCUNHO GERADO POR IA — PENDENTE DE REVISÃO TÉCNICA',bold:true,color:'A12A2A'})],spacing:{after:200}}),
