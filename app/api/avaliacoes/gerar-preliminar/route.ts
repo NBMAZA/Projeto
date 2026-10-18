@@ -10,6 +10,13 @@ const title=(s:string)=>new Paragraph({text:s,heading:HeadingLevel.HEADING_2,spa
 const para=(s:string)=>new Paragraph({text:s||'Não informado',spacing:{after:130}});
 const cell=(s:string)=>new TableCell({children:[para(s)]});
 
+const imageDimensions=(b:Uint8Array):{width:number;height:number}|null=>{
+ if(b.length<24)return null;
+ if(b[0]===137&&b[1]===80){const v=new DataView(b.buffer,b.byteOffset,b.byteLength);return {width:v.getUint32(16),height:v.getUint32(20)}}
+ if(b[0]===255&&b[1]===216){let p=2;while(p+9<b.length){if(b[p]!==255){p++;continue}const marker=b[p+1];if(marker===216||marker===1){p+=2;continue}if(marker===217||marker===218)break;const len=(b[p+2]<<8)+b[p+3];if(len<2)break;if([192,193,194,195,198,199,201,202].includes(marker))return {height:(b[p+5]<<8)+b[p+6],width:(b[p+7]<<8)+b[p+8]};p+=2+len}}
+ return null;
+};
+
 export async function POST(req:NextRequest){
  try{
   const token=req.headers.get('authorization')?.replace(/^Bearer\s+/i,'');
@@ -100,8 +107,12 @@ export async function POST(req:NextRequest){
    const {data:arquivo,error:erroFoto}=await db.storage.from(foto.bucket).download(foto.storage_path);
    if(erroFoto||!arquivo||arquivo.size>5*1024*1024){imagensIndisponiveis.push(foto.id);continue}
    const bytes=new Uint8Array(await arquivo.arrayBuffer());
+   const dim=imageDimensions(bytes);
+   const ratio=dim&&dim.width>0&&dim.height>0?dim.width/dim.height:1.5;
+   const width=ratio>=1?420:Math.min(280,420*ratio);
+   const height=width/ratio;
    imagensWord.push(para(foto.id+' — '+foto.origem+' — '+foto.descricao));
-   imagensWord.push(new Paragraph({children:[new ImageRun({type:tipo,data:bytes,transformation:{width:420,height:280},altText:{title:foto.id,description:foto.descricao,name:foto.id}})]}));
+   imagensWord.push(new Paragraph({children:[new ImageRun({type:tipo,data:bytes,transformation:{width:Math.round(width),height:Math.round(height)},altText:{title:foto.id,description:foto.descricao,name:foto.id}})]}));
   }
   const children=[
    new Paragraph({children:[new TextRun({text:'RASCUNHO GERADO POR IA — PENDENTE DE REVISÃO TÉCNICA',bold:true,color:'A12A2A'})],spacing:{after:200}}),
