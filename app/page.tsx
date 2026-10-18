@@ -51,13 +51,13 @@ return (
         <section><h2>Acesso administrativo</h2><form onSubmit={login}><label>E-mail</label><input type="email" required value={email} onChange={e=>setEmail(e.target.value)}/><label>Senha</label><input type="password" required value={senha} onChange={e=>setSenha(e.target.value)}/><button disabled={busy}>Entrar</button></form></section>
       ) : !admin ? (
         <div className="admin-shell">
-          <aside className="admin-menu">
-            <h2>Consultoria</h2>
-            <p>{nomeConsultoria||'Área da consultoria'}</p>
+          <aside className="admin-menu" style={{width:205,minWidth:205,flex:"0 0 205px",padding:14,boxSizing:"border-box"}}>
+            <h2 style={{fontSize:17,marginBottom:6}}>Consultoria</h2>
+            <p style={{fontSize:12,marginBottom:12,overflowWrap:"anywhere"}}>{nomeConsultoria||'Área da consultoria'}</p>
             <button type="button" onClick={()=>setTelaConsultoria('painel')}>Visão geral</button>
             <button type="button" onClick={()=>setTelaConsultoria('clientes')}>Clientes</button>
-            <a href="/plantas" style={{display:'block',padding:'10px 12px',border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:8}}>Plantas</a>
-            <a href="/instalacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Instalações</a><a href="/postos" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Postos de Trabalho</a><a href="/estacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Estações de Trabalho</a><a href="/avaliacoes" style={{display:"block",padding:"10px 12px",border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:8}}>Avaliações Ergonômicas</a>
+            <a href="/plantas" style={{display:'block',padding:'8px 10px',fontSize:13,border:'1px solid #526783',borderRadius:8,color:'white',textDecoration:'none',marginTop:5}}>Plantas</a>
+            <a href="/instalacoes" style={{display:"block",padding:"8px 10px",fontSize:13,border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:5}}>Instalações</a><a href="/postos" style={{display:"block",padding:"8px 10px",fontSize:13,border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:5}}>Postos de Trabalho</a><a href="/estacoes" style={{display:"block",padding:"8px 10px",fontSize:13,border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:5}}>Estações de Trabalho</a><a href="/avaliacoes" style={{display:"block",padding:"8px 10px",fontSize:13,border:"1px solid #526783",borderRadius:8,color:"white",textDecoration:"none",marginTop:5}}>Avaliações Ergonômicas</a>
           </aside>
           <div className="admin-main">
           {telaConsultoria==='painel' ? (
