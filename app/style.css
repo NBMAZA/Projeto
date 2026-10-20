@@ -14,3 +14,14 @@
 .estacoes-page section{min-width:0;overflow-wrap:anywhere}
 .estacoes-page table{display:block;overflow-x:auto;max-width:100%}
 @media(max-width:600px){.estacoes-page main{padding:0 12px}.estacoes-page section{padding:16px}.estacoes-page .grid{grid-template-columns:minmax(0,1fr)}}
+
+/* Cadastro de Cargos: campos alinhados e descrições amplas */
+.cargos-page form{width:100%;max-width:650px;min-width:0}
+.cargos-page form>label{display:flex;flex-direction:column;align-items:stretch;gap:7px;margin:0;min-width:0}
+.cargos-page form input,.cargos-page form textarea,.cargos-page form select{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+.cargos-page form textarea{min-height:110px;resize:vertical;line-height:1.5}
+.cargos-page .cargos-cliente{display:flex;flex-direction:column;align-items:stretch;gap:7px;max-width:650px}
+.cargos-page .cargos-cliente select{width:100%;min-width:0;max-width:100%}
+.cargos-page .cargos-acoes{display:flex;gap:10px;flex-wrap:wrap}
+.cargos-page table{display:block;overflow-x:auto;max-width:100%}
+@media(max-width:600px){.cargos-page{padding:12px!important}.cargos-page .cargos-acoes button{flex:1}}
