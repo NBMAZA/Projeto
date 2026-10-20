@@ -112,7 +112,7 @@ export async function POST(req:NextRequest){
    const width=ratio>=1?420:Math.min(280,420*ratio);
    const height=width/ratio;
    imagensWord.push(new Paragraph({text:foto.id+' — '+foto.origem+' — '+foto.descricao,keepNext:true,spacing:{before:180,after:60}}));
-   imagensWord.push(new Paragraph({keepTogether:true,children:[new ImageRun({type:tipo,data:bytes,transformation:{width:Math.round(width),height:Math.round(height)},altText:{title:foto.id,description:foto.descricao,name:foto.id}})]}));
+   imagensWord.push(new Paragraph({children:[new ImageRun({type:tipo,data:bytes,transformation:{width:Math.round(width),height:Math.round(height)},altText:{title:foto.id,description:foto.descricao,name:foto.id}})]}));
   }
   const children=[
    new Paragraph({children:[new TextRun({text:'RASCUNHO GERADO POR IA — PENDENTE DE REVISÃO TÉCNICA',bold:true,color:'A12A2A'})],spacing:{after:200}}),
