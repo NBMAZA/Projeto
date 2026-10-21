@@ -62,9 +62,8 @@ export default function RiscosIdentificados(){
  </div></details>
  <details style={{border:'1px solid #cbd5e1',borderRadius:8,padding:12}}><summary style={{fontWeight:700,cursor:'pointer'}}>3. Avaliação de risco — preenchimento manual</summary><div style={{display:'grid',gap:12,marginTop:12}}>
  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
- {([['nivel_mitigacao','Nível de mitigação existente']] as const).map(([k,t])=><label key={k} style={label}>{t}<input style={campo} value={form[k]} onChange={e=>alterar(k,e.target.value)}/></label>)}
  {([['probabilidade','Probabilidade'],['severidade','Severidade'],['risco_puro','Risco puro']] as const).map(([k,t])=><label key={k} style={label}>{t}<input type="number" min="0" step="any" style={campo} value={form[k]} onChange={e=>alterar(k,e.target.value)}/></label>)}
- </div><p style={{fontSize:12,color:'#64748b'}}>Os valores são informados manualmente. Nenhum cálculo ou classificação automática é aplicado.</p>
+ </div><label style={label}>Nível de mitigação existente<input style={campo} value={form.nivel_mitigacao} onChange={e=>alterar('nivel_mitigacao',e.target.value)}/></label><p style={{fontSize:12,color:'#64748b'}}>Os valores são informados manualmente. Nenhum cálculo ou classificação automática é aplicado.</p>
  </div></details>
  <details style={{border:'1px solid #cbd5e1',borderRadius:8,padding:12}}><summary style={{fontWeight:700,cursor:'pointer'}}>4. Conclusão técnica</summary><div style={{display:'grid',gap:12,marginTop:12}}>
  <label style={label}>Classificação de risco final<input style={campo} value={form.classificacao_final} onChange={e=>alterar('classificacao_final',e.target.value)} placeholder="Ex.: Presença de risco ergonômico médio"/></label>
