@@ -21,6 +21,20 @@ create table if not exists public.riscos_identificados (
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now()
 );
+-- Campos de input manual conforme modelo de risco fornecido pela consultoria.
+alter table public.riscos_identificados add column if not exists grupo_risco text;
+alter table public.riscos_identificados add column if not exists perfil_exposicao text;
+alter table public.riscos_identificados add column if not exists medidas_existentes text;
+alter table public.riscos_identificados add column if not exists fundamentacao_legal text;
+alter table public.riscos_identificados add column if not exists metodologia_avaliacao text;
+alter table public.riscos_identificados add column if not exists probabilidade numeric;
+alter table public.riscos_identificados add column if not exists severidade numeric;
+alter table public.riscos_identificados add column if not exists risco_puro numeric;
+alter table public.riscos_identificados add column if not exists nivel_mitigacao text;
+alter table public.riscos_identificados add column if not exists classificacao_soc text;
+alter table public.riscos_identificados add column if not exists conclusao_tecnica text;
+alter table public.riscos_identificados add column if not exists classificacao_final text;
+alter table public.riscos_identificados add column if not exists lesoes_agravos text;
 create index if not exists riscos_identificados_cliente_idx on public.riscos_identificados(cliente_id,status);
 create index if not exists riscos_identificados_estrutura_idx on public.riscos_identificados(nivel,estrutura_id);
 alter table public.riscos_identificados enable row level security;
