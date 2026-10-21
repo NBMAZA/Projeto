@@ -21,18 +21,21 @@ export default function RiscosIdentificados(){
  const [filtroStatus,setFiltroStatus]=useState(''),[filtroClasse,setFiltroClasse]=useState(''),[busca,setBusca]=useState('');
  const [erro,setErro]=useState(''),[aviso,setAviso]=useState(''),[salvando,setSalvando]=useState(false),[carregando,setCarregando]=useState(false);
  const [modo,setModo]=useState<'painel'|'cadastro'>('painel');
- const [gravando,setGravando]=useState(false);
+ const [gravando,setGravando]=useState<keyof typeof vazio|null>(null);
  const reconhecimento=useRef<any>(null);
- function alternarDitado(){
-  if(reconhecimento.current){reconhecimento.current.stop();reconhecimento.current=null;setGravando(false);return}
+ function alternarDitado(campoAlvo:keyof typeof vazio){
+  if(reconhecimento.current){reconhecimento.current.stop();reconhecimento.current=null;setGravando(null);if(gravando===campoAlvo)return}
   const win=window as any;
   const Speech=win.SpeechRecognition||win.webkitSpeechRecognition;
   if(!Speech){setErro('Ditado não disponível neste navegador. Utilize Chrome ou Edge com permissão de microfone.');return}
   const rec=new Speech();rec.lang='pt-BR';rec.continuous=true;rec.interimResults=false;
-  rec.onresult=(event:any)=>{let texto='';for(let i=event.resultIndex;i<event.results.length;i++){if(event.results[i].isFinal)texto+=event.results[i][0].transcript+' '}if(texto)setForm(p=>({...p,observacoes:[p.observacoes.trim(),texto.trim()].filter(Boolean).join(' ')}))};
-  rec.onerror=(event:any)=>{setErro('Não foi possível transcrever o áudio: '+event.error);setGravando(false);reconhecimento.current=null};
-  rec.onend=()=>{setGravando(false);reconhecimento.current=null};
-  try{rec.start();reconhecimento.current=rec;setGravando(true);setErro('')}catch{setErro('Não foi possível iniciar o microfone.')}
+  rec.onresult=(event:any)=>{let texto='';for(let i=event.resultIndex;i<event.results.length;i++){if(event.results[i].isFinal)texto+=event.results[i][0].transcript+' '}if(texto)setForm(p=>({...p,[campoAlvo]:[p[campoAlvo].trim(),texto.trim()].filter(Boolean).join(' ')}))};
+  rec.onerror=(event:any)=>{setErro('Não foi possível transcrever o áudio: '+event.error);setGravando(null);reconhecimento.current=null};
+  rec.onend=()=>{setGravando(null);reconhecimento.current=null};
+  try{rec.start();reconhecimento.current=rec;setGravando(campoAlvo);setErro('')}catch{setErro('Não foi possível iniciar o microfone.')}
+ }
+ function campoComVoz(k:keyof typeof vazio,t:string,obrigatorio=false){
+  return <div key={k}><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:5,flexWrap:'wrap'}}><label htmlFor={'risco-'+k} style={{fontSize:13,fontWeight:600}}>{t}</label><button type="button" aria-label={(gravando===k?'Parar ditado em ':'Ditar em ')+t} aria-pressed={gravando===k} onClick={()=>alternarDitado(k)} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'6px 10px',borderRadius:7,border:'1px solid #64748b',background:gravando===k?'#fee2e2':'#eff6ff',color:'#0f172a',fontSize:13,fontWeight:600,cursor:'pointer',minHeight:34}}>{gravando===k?'■ Parar ditado':'🎙 Ditar'}</button></div><textarea id={'risco-'+k} rows={3} style={{...campo,height:'auto',resize:'vertical'}} required={obrigatorio} value={form[k]} onChange={e=>alterar(k,e.target.value)}/></div>
  }
  useEffect(()=>()=>{reconhecimento.current?.stop()},[]);
  useEffect(()=>{const params=new URLSearchParams(window.location.search);const c=params.get('cliente')||'';const n=params.get('nivel');const id=params.get('estrutura')||'';if(params.get('novo')==='1'&&c&&id&&(n==='posto'||n==='estacao')){setCliente(c);setNivel(n);setLocal(id);setEditando('');setForm(vazio);setModo('cadastro')}},[]);
@@ -72,7 +75,7 @@ export default function RiscosIdentificados(){
  <label style={label}>Grupo do risco<input style={campo} value={form.grupo_risco} onChange={e=>alterar('grupo_risco',e.target.value)}/></label>
  </div></details>
  <details style={{border:'1px solid #cbd5e1',borderRadius:8,padding:12}}><summary style={{fontWeight:700,cursor:'pointer'}}>2. Exposição e prevenção</summary><div style={{display:'grid',gap:12,marginTop:12}}>
- {([['perfil_exposicao','Perfil de exposição'],['medidas_existentes','Medidas existentes']] as const).map(([k,t])=><label key={k} style={label}>{t}<textarea rows={3} style={{...campo,height:'auto'}} value={form[k]} onChange={e=>alterar(k,e.target.value)}/></label>)}
+ {([['perfil_exposicao','Perfil de exposição'],['medidas_existentes','Medidas existentes']] as const).map(([k,t])=>campoComVoz(k,t))}
  </div></details>
  <details style={{border:'1px solid #cbd5e1',borderRadius:8,padding:12}}><summary style={{fontWeight:700,cursor:'pointer'}}>3. Avaliação de risco — preenchimento manual</summary><div style={{display:'grid',gap:12,marginTop:12}}>
  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
@@ -87,9 +90,8 @@ export default function RiscosIdentificados(){
  <label style={label}>Lesões e agravos<textarea rows={3} style={{...campo,height:'auto'}} value={form.lesoes_agravos} onChange={e=>alterar('lesoes_agravos',e.target.value)}/></label>
  </div></details>
  <label style={label}>Título do risco<input required maxLength={180} style={campo} value={form.titulo} onChange={e=>alterar('titulo',e.target.value)} placeholder="Ex.: Flexão frequente do tronco"/></label>
- {([['descricao','Descrição técnica do risco'],['medidas_recomendadas','Medidas recomendadas'],['plano_acao','Plano de ação']] as const).map(([k,t])=><label key={k} style={label}>{t}<textarea rows={3} style={{...campo,height:'auto',resize:'vertical'}} required={k==='descricao'} value={form[k]} onChange={e=>alterar(k,e.target.value)}/></label>)}
- <div><div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,marginBottom:5}}><label htmlFor="risco-comentario" style={{fontSize:13,fontWeight:600}}>Comentário técnico / observações adicionais</label><button type="button" aria-pressed={gravando} onClick={alternarDitado} style={{padding:'6px 10px',borderRadius:7,border:'1px solid #94a3b8',background:gravando?'#fee2e2':'#eff6ff',cursor:'pointer'}}>{gravando?'■ Parar ditado':'🎙 Ditar comentário'}</button></div><textarea id="risco-comentario" rows={3} style={{...campo,height:'auto',resize:'vertical'}} value={form.observacoes} onChange={e=>alterar('observacoes',e.target.value)}/><p style={{fontSize:12,color:'#64748b'}}>A fala é convertida em texto; revise antes de salvar. O áudio não é armazenado pelo portal. O navegador pode usar um serviço de reconhecimento de voz.</p></div>
- <label style={label}>Responsável pelo plano de ação<input style={campo} value={form.responsavel_acao} onChange={e=>alterar('responsavel_acao',e.target.value)}/></label>
+ {([['descricao','Descrição técnica do risco'],['medidas_recomendadas','Medidas recomendadas'],['plano_acao','Plano de ação']] as const).map(([k,t])=>campoComVoz(k,t,k==='descricao'))}
+ {campoComVoz('observacoes','Comentário técnico / observações adicionais')}\n <p style={{fontSize:12,color:'#64748b'}}>O ditado preenche o campo selecionado. Revise o texto antes de salvar; o áudio não é armazenado pelo portal. O navegador pode usar um serviço externo de reconhecimento.</p>\n <label style={label}>Responsável pelo plano de ação<input style={campo} value={form.responsavel_acao} onChange={e=>alterar('responsavel_acao',e.target.value)}/></label>
  <p style={{fontSize:12,color:'#64748b'}}>A classificação é informada pela profissional responsável, não calculada automaticamente.</p>
  <div style={{display:'flex',gap:10}}><button type="submit" disabled={salvando}>{salvando?'Salvando...':editando?'Salvar alterações':'Cadastrar risco'}</button><button type="button" onClick={()=>setModo('painel')}>Cancelar</button></div>
  </form>}
