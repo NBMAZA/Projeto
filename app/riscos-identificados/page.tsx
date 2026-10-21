@@ -84,14 +84,16 @@ export default function RiscosIdentificados(){
  </div></details>
  <details style={{border:'1px solid #cbd5e1',borderRadius:8,padding:12}}><summary style={{fontWeight:700,cursor:'pointer'}}>4. Conclusão técnica</summary><div style={{display:'grid',gap:12,marginTop:12}}>
  <label style={label}>Classificação de risco final<input style={campo} value={form.classificacao_final} onChange={e=>alterar('classificacao_final',e.target.value)} placeholder="Ex.: Presença de risco ergonômico médio"/></label>
- <label style={label}>Conclusão<textarea rows={3} style={{...campo,height:'auto'}} value={form.conclusao_tecnica} onChange={e=>alterar('conclusao_tecnica',e.target.value)}/></label>
+ {campoComVoz('conclusao_tecnica','Conclusão')}
  </div></details>
  <details style={{border:'1px solid #cbd5e1',borderRadius:8,padding:12}}><summary style={{fontWeight:700,cursor:'pointer'}}>5. Ações e consequências</summary><div style={{display:'grid',gap:12,marginTop:12}}>
- <label style={label}>Lesões e agravos<textarea rows={3} style={{...campo,height:'auto'}} value={form.lesoes_agravos} onChange={e=>alterar('lesoes_agravos',e.target.value)}/></label>
+ {campoComVoz('lesoes_agravos','Lesões e agravos')}
  </div></details>
  <label style={label}>Título do risco<input required maxLength={180} style={campo} value={form.titulo} onChange={e=>alterar('titulo',e.target.value)} placeholder="Ex.: Flexão frequente do tronco"/></label>
  {([['descricao','Descrição técnica do risco'],['medidas_recomendadas','Medidas recomendadas'],['plano_acao','Plano de ação']] as const).map(([k,t])=>campoComVoz(k,t,k==='descricao'))}
- {campoComVoz('observacoes','Comentário técnico / observações adicionais')}\n <p style={{fontSize:12,color:'#64748b'}}>O ditado preenche o campo selecionado. Revise o texto antes de salvar; o áudio não é armazenado pelo portal. O navegador pode usar um serviço externo de reconhecimento.</p>\n <label style={label}>Responsável pelo plano de ação<input style={campo} value={form.responsavel_acao} onChange={e=>alterar('responsavel_acao',e.target.value)}/></label>
+ {campoComVoz('observacoes','Comentário técnico / observações adicionais')}
+ <p style={{fontSize:12,color:'#64748b'}}>O ditado preenche o campo selecionado. Revise o texto antes de salvar; o áudio não é armazenado pelo portal. O navegador pode usar um serviço externo de reconhecimento.</p>
+ <label style={label}>Responsável pelo plano de ação<input style={campo} value={form.responsavel_acao} onChange={e=>alterar('responsavel_acao',e.target.value)}/></label>
  <p style={{fontSize:12,color:'#64748b'}}>A classificação é informada pela profissional responsável, não calculada automaticamente.</p>
  <div style={{display:'flex',gap:10}}><button type="submit" disabled={salvando}>{salvando?'Salvando...':editando?'Salvar alterações':'Cadastrar risco'}</button><button type="button" onClick={()=>setModo('painel')}>Cancelar</button></div>
  </form>}
