@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
-import {useSearchParams} from 'next/navigation';
+
 import Link from 'next/link';
 import {supabase} from '../../lib/supabase';
 
@@ -14,14 +14,14 @@ const origens=[['coleta_biomecanica','Coleta biomecânica'],['avaliacao_mobiliar
 const campo:React.CSSProperties={width:'100%',minWidth:0,height:38,padding:'5px 8px',border:'1px solid #cbd5e1',borderRadius:7,background:'white'};
 const label:React.CSSProperties={display:'grid',gap:5,fontSize:13,fontWeight:600,minWidth:0};
 export default function RiscosIdentificados(){
- const params=useSearchParams();
+
  const [clientes,setClientes]=useState<Cliente[]>([]),[cliente,setCliente]=useState('');
  const [nivel,setNivel]=useState<'posto'|'estacao'>('posto'),[locais,setLocais]=useState<Local[]>([]),[local,setLocal]=useState('');
  const [riscos,setRiscos]=useState<Risco[]>([]),[form,setForm]=useState(vazio),[editando,setEditando]=useState('');
  const [filtroStatus,setFiltroStatus]=useState(''),[filtroClasse,setFiltroClasse]=useState(''),[busca,setBusca]=useState('');
  const [erro,setErro]=useState(''),[aviso,setAviso]=useState(''),[salvando,setSalvando]=useState(false),[carregando,setCarregando]=useState(false);
  const [modo,setModo]=useState<'painel'|'cadastro'>('painel');
- useEffect(()=>{const c=params.get('cliente')||'';const n=params.get('nivel');const id=params.get('estrutura')||'';if(params.get('novo')==='1'&&c&&id&&(n==='posto'||n==='estacao')){setCliente(c);setNivel(n);setLocal(id);setEditando('');setForm(vazio);setModo('cadastro')}},[params]);
+ useEffect(()=>{const params=new URLSearchParams(window.location.search);const c=params.get('cliente')||'';const n=params.get('nivel');const id=params.get('estrutura')||'';if(params.get('novo')==='1'&&c&&id&&(n==='posto'||n==='estacao')){setCliente(c);setNivel(n);setLocal(id);setEditando('');setForm(vazio);setModo('cadastro')}},[]);
  const alterar=(k:keyof typeof vazio,v:string)=>setForm(p=>({...p,[k]:v}));
  const carregar=async()=>{setCarregando(true);const {data,error}=await supabase().from('riscos_identificados').select('*').order('created_at',{ascending:false});if(error)setErro('Não foi possível consultar os riscos. Verifique se a migração do módulo foi aplicada: '+error.message);else {setRiscos((data||[]) as Risco[]);setErro('')}setCarregando(false)};
  useEffect(()=>{supabase().from('clientes').select('id,razao_social').order('razao_social').then(({data,error})=>{if(error)setErro(error.message);else setClientes(data||[]) });void carregar()},[]);
