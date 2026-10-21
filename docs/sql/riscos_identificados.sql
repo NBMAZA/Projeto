@@ -6,7 +6,7 @@ create table if not exists public.riscos_identificados (
  nivel text not null check (nivel in ('posto','estacao')),
  estrutura_id uuid not null,
  origem text not null default 'coleta_biomecanica' check (origem in ('coleta_biomecanica','avaliacao_mobiliario','outra')),
- avaliacao_biomecanica_id uuid references public.avaliacoes_biomecanicas(id) on delete set null,
+ avaliacao_biomecanica_id uuid,
  criterio_codigo text,
  titulo text not null check (length(btrim(titulo)) > 0),
  descricao text not null check (length(btrim(descricao)) > 0),
@@ -25,13 +25,10 @@ create table if not exists public.riscos_identificados (
 alter table public.riscos_identificados add column if not exists grupo_risco text;
 alter table public.riscos_identificados add column if not exists perfil_exposicao text;
 alter table public.riscos_identificados add column if not exists medidas_existentes text;
-alter table public.riscos_identificados add column if not exists fundamentacao_legal text;
-alter table public.riscos_identificados add column if not exists metodologia_avaliacao text;
 alter table public.riscos_identificados add column if not exists probabilidade numeric;
 alter table public.riscos_identificados add column if not exists severidade numeric;
 alter table public.riscos_identificados add column if not exists risco_puro numeric;
 alter table public.riscos_identificados add column if not exists nivel_mitigacao text;
-alter table public.riscos_identificados add column if not exists classificacao_soc text;
 alter table public.riscos_identificados add column if not exists conclusao_tecnica text;
 alter table public.riscos_identificados add column if not exists classificacao_final text;
 alter table public.riscos_identificados add column if not exists lesoes_agravos text;
@@ -60,12 +57,9 @@ begin
    raise exception 'Estação não pertence ao cliente informado';
   end if;
  end if;
- if new.avaliacao_biomecanica_id is not null and not exists
-  (select 1 from public.avaliacoes_biomecanicas a where a.id=new.avaliacao_biomecanica_id and a.cliente_id=new.cliente_id and a.nivel=new.nivel and a.estrutura_id=new.estrutura_id) then
-  raise exception 'Avaliação biomecânica não corresponde ao local do risco';
- end if;
  new.updated_at=now();
  return new;
 end $$;
+drop trigger if exists trg_validar_vinculo_risco on public.riscos_identificados;
 create trigger trg_validar_vinculo_risco before insert or update on public.riscos_identificados
 for each row execute function public.validar_vinculo_risco();
