@@ -15,7 +15,31 @@ export default function CondicoesAmbientais(){
  const [plantas,setPlantas]=useState<Item[]>([]),[instalacoes,setInstalacoes]=useState<Item[]>([]),[postos,setPostos]=useState<Item[]>([]),[estacoes,setEstacoes]=useState<Item[]>([]);
  const [nivel,setNivel]=useState<Nivel>('cliente'),[data,setData]=useState(''),[titulo,setTitulo]=useState(''),[metodologia,setMetodologia]=useState(''),[conclusao,setConclusao]=useState('');
  const [pontos,setPontos]=useState<Ponto[]>([novoPonto()]),[erro,setErro]=useState('');
- useEffect(()=>{supabase().from('clientes').select('id,razao_social').order('razao_social').then(({data,error})=>{if(error)setErro(error.message);else setClientes(data||[])})},[]);
+ const [empresaAtiva,setEmpresaAtiva]=useState(false);
+ useEffect(()=>{
+  let ativo=true;
+  (async()=>{
+   try{
+    const db=supabase();
+    const {data:{user},error:authError}=await db.auth.getUser();
+    if(authError)throw authError;
+    if(!user)return;
+    const {data:links,error:linkError}=await db.from('usuarios_consultoria').select('consultoria_id').eq('usuario_id',user.id).eq('ativo',true).eq('perfil','admin_consultoria');
+    if(linkError)throw linkError;
+    if(!ativo)return;
+    const consultoriaId=links?.[0]?.consultoria_id;
+    if(!consultoriaId)return;
+    const {data,error}=await db.from('clientes').select('id,razao_social').eq('consultoria_id',consultoriaId).order('razao_social');
+    if(error)throw error;
+    if(!ativo)return;
+    const disponiveis=data||[];
+    setClientes(disponiveis);
+    const salva=window.localStorage.getItem('portal-nr17:empresa-ativa:'+user.id+':'+consultoriaId);
+    if(salva&&disponiveis.some(c=>c.id===salva)){setCliente(salva);setEmpresaAtiva(true)}
+   }catch(e){if(ativo)setErro(e instanceof Error?e.message:'Não foi possível carregar as empresas.')}
+  })();
+  return()=>{ativo=false};
+ },[]);
  useEffect(()=>{setPlanta('');setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
@@ -31,13 +55,14 @@ export default function CondicoesAmbientais(){
  <div className="ambiental-grid">
  <label>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ex.: Avaliação ambiental do escritório"/></label>
  <label>Data da coleta<input type="date" value={data} onChange={e=>setData(e.target.value)}/></label>
- <label>Cliente<select value={cliente} onChange={e=>setCliente(e.target.value)}><option value="">Selecione</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.razao_social}</option>)}</select></label>
+ <label>Cliente<select value={cliente} disabled={empresaAtiva} onChange={e=>setCliente(e.target.value)}><option value="">Selecione</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.razao_social}</option>)}</select></label>
  <label>Vincular a<select value={nivel} onChange={e=>setNivel(e.target.value as Nivel)}>{([['cliente','Cliente'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto de trabalho'],['estacao','Estação de trabalho']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
  {nivel!=='cliente'&&selecao('Planta',planta,setPlanta,plantas,!cliente)}
  {['instalacao','posto','estacao'].includes(nivel)&&selecao('Instalação',instalacao,setInstalacao,instalacoes,!planta)}
  {['posto','estacao'].includes(nivel)&&selecao('Posto',posto,setPosto,postos,!instalacao)}
  {nivel==='estacao'&&selecao('Estação',estacao,setEstacao,estacoes,!posto)}
  </div>
+ {empresaAtiva&&<p style={{fontSize:12,color:'#53657a',margin:'8px 0'}}>Empresa herdada do Painel da Consultoria. Para alterar, volte ao painel e selecione outra empresa.</p>}
  <h2>Pontos de coleta</h2>
  {pontos.map((p,i)=><article key={p.id} style={{border:'1px solid #cbd5e1',borderRadius:10,padding:16,marginBottom:16}}>
  <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><h3>Ponto {i+1}</h3><button type="button" onClick={()=>setPontos(ps=>ps.filter(x=>x.id!==p.id))}>Excluir ponto</button></div>
