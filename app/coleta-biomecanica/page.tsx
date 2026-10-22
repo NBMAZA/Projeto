@@ -32,7 +32,31 @@ export default function ColetaBiomecanica(){
  const [cliente,setCliente]=useState(''),[plantas,setPlantas]=useState<Item[]>([]),[planta,setPlanta]=useState(''),[instalacoes,setInstalacoes]=useState<Item[]>([]),[instalacao,setInstalacao]=useState(''),[postos,setPostos]=useState<Item[]>([]),[posto,setPosto]=useState(''),[estacoes,setEstacoes]=useState<Item[]>([]),[estacao,setEstacao]=useState('');
  const [nivel,setNivel]=useState<'posto'|'estacao'>('posto'),[grupo,setGrupo]=useState('Posturas'),[respostas,setRespostas]=useState<Record<string,Resposta>>({}),[geral,setGeral]=useState({observacoes:'',comentario:'',plano:''});
  const [erro,setErro]=useState('');
- useEffect(()=>{supabase().from('clientes').select('id,razao_social').order('razao_social').then(({data,error})=>{if(error)setErro(error.message);else setClientes(data||[])})},[]);
+ const [empresaAtiva,setEmpresaAtiva]=useState(false);
+ useEffect(()=>{
+  let ativo=true;
+  (async()=>{
+   try{
+    const db=supabase();
+    const {data:{user},error:authError}=await db.auth.getUser();
+    if(authError)throw authError;
+    if(!user)return;
+    const {data:links,error:linkError}=await db.from('usuarios_consultoria').select('consultoria_id').eq('usuario_id',user.id).eq('ativo',true).eq('perfil','admin_consultoria');
+    if(linkError)throw linkError;
+    if(!ativo)return;
+    const consultoriaId=links?.[0]?.consultoria_id;
+    if(!consultoriaId)return;
+    const {data,error}=await db.from('clientes').select('id,razao_social').eq('consultoria_id',consultoriaId).order('razao_social');
+    if(error)throw error;
+    if(!ativo)return;
+    const disponiveis=data||[];
+    setClientes(disponiveis);
+    const salva=window.localStorage.getItem('portal-nr17:empresa-ativa:'+user.id+':'+consultoriaId);
+    if(salva&&disponiveis.some(c=>c.id===salva)){setCliente(salva);setEmpresaAtiva(true)}
+   }catch(e){if(ativo)setErro(e instanceof Error?e.message:'Não foi possível carregar as empresas.')}
+  })();
+  return()=>{ativo=false};
+ },[]);
  useEffect(()=>{setPlanta('');setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
@@ -43,9 +67,10 @@ export default function ColetaBiomecanica(){
  const selecionado=nivel==='posto'?posto:estacao;
  return <><header><nav><strong>Portal NR-17 — Coleta Biomecânica</strong></nav></header><main><section style={{maxWidth:1120}}><p><Link href="/">← Voltar ao painel</Link></p><h1>Coleta de Dados Biomecânicos</h1><p style={{fontSize:13}}>Formulário de desenvolvimento. As informações desta tela ainda não são gravadas no banco de dados.</p>{erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
  <div style={{display:'grid',gridTemplateColumns:'repeat(12,minmax(0,1fr))',gap:'12px 14px',alignItems:'end'}}>
- <div style={{gridColumn:'span 8',minWidth:0}}><label style={{display:'grid',gap:5,fontSize:13,fontWeight:600}}>Cliente<select title={clientes.find(x=>x.id===cliente)?.razao_social||'Cliente'} style={{width:'100%',minWidth:0,height:40,fontWeight:400,textOverflow:'ellipsis'}} value={cliente} onChange={e=>setCliente(e.target.value)}><option value="">Selecione</option>{clientes.map(x=><option key={x.id} value={x.id}>{x.razao_social}</option>)}</select></label></div>
+ <div style={{gridColumn:'span 8',minWidth:0}}><label style={{display:'grid',gap:5,fontSize:13,fontWeight:600}}>Cliente<select title={clientes.find(x=>x.id===cliente)?.razao_social||'Cliente'} style={{width:'100%',minWidth:0,height:40,fontWeight:400,textOverflow:'ellipsis'}} value={cliente} disabled={empresaAtiva} onChange={e=>setCliente(e.target.value)}><option value="">Selecione</option>{clientes.map(x=><option key={x.id} value={x.id}>{x.razao_social}</option>)}</select></label></div>
  <div style={{gridColumn:'span 4',minWidth:0}}><label style={{display:'grid',gap:5,fontSize:13,fontWeight:600}}>Vincular a<select style={{width:'100%',minWidth:0,height:40,fontWeight:400}} value={nivel} onChange={e=>setNivel(e.target.value as 'posto'|'estacao')}><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option></select></label></div>
  </div>
+ {empresaAtiva&&<p style={{fontSize:12,color:'#53657a',margin:'8px 0'}}>Empresa herdada do Painel da Consultoria. Para alterar, volte ao painel e selecione outra empresa.</p>}
  <div className="biomecanica-seletores" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'12px 14px',marginTop:12}}>
  {campo('Planta',planta,setPlanta,plantas,!cliente)}{campo('Instalação',instalacao,setInstalacao,instalacoes,!planta)}{campo('Posto',posto,setPosto,postos,!instalacao)}{nivel==='estacao'&&campo('Estação',estacao,setEstacao,estacoes,!posto)}
  </div>
