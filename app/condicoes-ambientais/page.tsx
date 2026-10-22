@@ -34,8 +34,15 @@ export default function CondicoesAmbientais(){
     if(!ativo)return;
     const disponiveis=data||[];
     setClientes(disponiveis);
-    const salva=window.localStorage.getItem('portal-nr17:empresa-ativa:'+user.id+':'+consultoriaId);
-    if(salva&&disponiveis.some(c=>c.id===salva)){setCliente(salva);setEmpresaAtiva(true)}
+    const chave='portal-nr17:empresa-ativa:'+user.id+':'+consultoriaId;
+    const informado=new URLSearchParams(window.location.search).get('cliente')||'';
+    const salva=window.localStorage.getItem(chave)||'';
+    const escolhido=informado||salva;
+    if(escolhido&&disponiveis.some(c=>c.id===escolhido)){
+      setCliente(escolhido);setEmpresaAtiva(true);
+      window.localStorage.setItem(chave,escolhido);
+    }else if(informado){setErro('A empresa informada não está disponível para este usuário. Selecione uma empresa autorizada no painel.')}
+    else if(salva){window.localStorage.removeItem(chave)}
    }catch(e){if(ativo)setErro(e instanceof Error?e.message:'Não foi possível carregar as empresas.')}
   })();
   return()=>{ativo=false};
