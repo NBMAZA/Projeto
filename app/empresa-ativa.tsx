@@ -5,7 +5,7 @@ import {supabase} from '../lib/supabase';
 type Cliente={id:string;razao_social:string;status:string|null};
 const chave=(usuario:string,consultoria:string)=>'portal-nr17:empresa-ativa:'+usuario+':'+consultoria;
 
-export default function EmpresaAtiva({consultoriaId}:{consultoriaId:string}){
+export default function EmpresaAtiva({consultoriaId,onChange}:{consultoriaId:string;onChange?:(clienteId:string)=>void}){
  const [clientes,setClientes]=useState<Cliente[]>([]);
  const [selecionada,setSelecionada]=useState('');
  const [usuario,setUsuario]=useState('');
@@ -27,8 +27,9 @@ export default function EmpresaAtiva({consultoriaId}:{consultoriaId:string}){
     const disponiveis=(data||[]).filter(c=>c.status!=='inativo');
     setClientes(disponiveis);setUsuario(user.id);
     const salva=window.localStorage.getItem(chave(user.id,consultoriaId))||'';
-    if(salva&&disponiveis.some(c=>c.id===salva))setSelecionada(salva);
+    if(salva&&disponiveis.some(c=>c.id===salva)){setSelecionada(salva);onChange?.(salva);}
     else if(salva)window.localStorage.removeItem(chave(user.id,consultoriaId));
+    if(!salva||!disponiveis.some(c=>c.id===salva))onChange?.('');
    }catch(e){if(ativo)setErro(e instanceof Error?e.message:'Não foi possível carregar as empresas.')}
    finally{if(ativo)setCarregando(false)}
   }
@@ -38,7 +39,7 @@ export default function EmpresaAtiva({consultoriaId}:{consultoriaId:string}){
  function alterar(id:string){
   if(!usuario||!consultoriaId)return;
   if(id&&!clientes.some(c=>c.id===id))return;
-  setSelecionada(id);
+  setSelecionada(id);onChange?.(id);
   if(id)window.localStorage.setItem(chave(usuario,consultoriaId),id);
   else window.localStorage.removeItem(chave(usuario,consultoriaId));
   window.dispatchEvent(new CustomEvent('portal-nr17:empresa-ativa',{detail:{clienteId:id}}));
