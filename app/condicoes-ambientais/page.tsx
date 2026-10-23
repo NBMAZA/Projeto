@@ -4,10 +4,10 @@ import Link from 'next/link';
 import {supabase} from '../../lib/supabase';
 type Item={id:string;nome:string};
 type Nivel='cliente'|'planta'|'instalacao'|'posto'|'estacao';
-type Medicao={id:string;tipo:'ruido'|'iluminacao_pontual'|'iluminacao_media'|'temperatura';parametro:string;resultado:string;observacoes:string};
+type Medicao={id:string;tipo:'ruido'|'iluminacao_pontual'|'iluminacao_media'|'temperatura';resultado:string;observacoes:string};
 type Ponto={id:string;nome:string;localizacao:string;observacoes:string;medicoes:Medicao[]};
 const tipos={ruido:'Ruído — dB(A)',iluminacao_pontual:'Iluminação pontual — lux',iluminacao_media:'Iluminação média — lux',temperatura:'Temperatura — °C'};
-const novaMedicao=():Medicao=>({id:crypto.randomUUID(),tipo:'ruido',parametro:'',resultado:'',observacoes:''});
+const novaMedicao=():Medicao=>({id:crypto.randomUUID(),tipo:'ruido',resultado:'',observacoes:''});
 const novoPonto=():Ponto=>({id:crypto.randomUUID(),nome:'',localizacao:'',observacoes:'',medicoes:[novaMedicao()]});
 export default function CondicoesAmbientais(){
  const [clientes,setClientes]=useState<{id:string;razao_social:string}[]>([]);
@@ -16,6 +16,7 @@ export default function CondicoesAmbientais(){
  const [nivel,setNivel]=useState<Nivel>('cliente'),[data,setData]=useState(''),[titulo,setTitulo]=useState(''),[metodologia,setMetodologia]=useState(''),[conclusao,setConclusao]=useState('');
  const [pontos,setPontos]=useState<Ponto[]>([novoPonto()]),[erro,setErro]=useState('');
  const [empresaAtiva,setEmpresaAtiva]=useState(false);
+ const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
  useEffect(()=>{
   let ativo=true;
   (async()=>{
@@ -70,6 +71,9 @@ export default function CondicoesAmbientais(){
  {nivel==='estacao'&&selecao('Estação',estacao,setEstacao,estacoes,!posto)}
  </div>
  {empresaAtiva&&<p style={{fontSize:12,color:'#53657a',margin:'8px 0'}}>Empresa herdada do Painel da Consultoria. Para alterar, volte ao painel e selecione outra empresa.</p>}
+ <h2>Critérios de referência</h2>
+ <p style={{color:'#53657a',fontSize:13}}>Informe uma vez o critério aplicável a cada tipo de medição. Os critérios serão utilizados como referência nos pontos de coleta desta avaliação.</p>
+ <div className="ambiental-grid">{(Object.entries(tipos) as [Medicao['tipo'],string][]).map(([tipo,nome])=><label key={tipo}>{nome}<input value={criterios[tipo]} onChange={e=>setCriterios(atual=>({...atual,[tipo]:e.target.value}))} placeholder="Ex.: norma, limite ou critério aplicável"/></label>)}</div>
  <h2>Pontos de coleta</h2>
  {pontos.map((p,i)=><article key={p.id} style={{border:'1px solid #cbd5e1',borderRadius:10,padding:16,marginBottom:16}}>
  <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><h3>Ponto {i+1}</h3><button type="button" onClick={()=>setPontos(ps=>ps.filter(x=>x.id!==p.id))}>Excluir ponto</button></div>
@@ -79,7 +83,6 @@ export default function CondicoesAmbientais(){
  {p.medicoes.map((m,j)=><div key={m.id} style={{borderTop:'1px solid #e2e8f0',padding:'12px 0'}}>
  <div className="ambiental-grid">
  <label>Tipo de medição<select value={m.tipo} onChange={e=>mudarMedicao(p.id,m.id,'tipo',e.target.value)}>{Object.entries(tipos).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
- <label>Parâmetro de referência<input value={m.parametro} onChange={e=>mudarMedicao(p.id,m.id,'parametro',e.target.value)} placeholder="Informar critério aplicável"/></label>
  <label>Resultado<input value={m.resultado} onChange={e=>mudarMedicao(p.id,m.id,'resultado',e.target.value)} placeholder="Valor medido"/></label>
  </div>
  <label>Observações da medição<textarea rows={2} value={m.observacoes} onChange={e=>mudarMedicao(p.id,m.id,'observacoes',e.target.value)}/></label>
@@ -90,7 +93,7 @@ export default function CondicoesAmbientais(){
  <button type="button" onClick={()=>setPontos(ps=>[...ps,novoPonto()])}>+ Adicionar ponto de coleta</button>
  <h2>Informações técnicas</h2><label>Metodologia<textarea rows={3} value={metodologia} onChange={e=>setMetodologia(e.target.value)}/></label>
  <label>Conclusão técnica<textarea rows={3} value={conclusao} onChange={e=>setConclusao(e.target.value)}/></label>
- <p style={{fontSize:13,color:'#53657a'}}>Os parâmetros são informativos e não classificam riscos automaticamente. Salvamento, microfone e associação aos riscos serão integrados nas próximas etapas.</p>
+ <p style={{fontSize:13,color:'#53657a'}}>Os critérios de referência são informativos, definidos por tipo de medição nesta avaliação, e não classificam riscos automaticamente. Salvamento, microfone e associação aos riscos serão integrados nas próximas etapas.</p>
  <style>{`.ambiental-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.ambiental-grid label,section>label,article>label{display:grid;gap:5px;margin-bottom:12px}input,select,textarea{max-width:100%;width:100%;box-sizing:border-box}`}</style>
  </section></main></>;
 }
