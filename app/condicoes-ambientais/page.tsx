@@ -17,7 +17,9 @@ export default function CondicoesAmbientais(){
  const [pontos,setPontos]=useState<Ponto[]>([novoPonto()]),[erro,setErro]=useState('');
  const [empresaAtiva,setEmpresaAtiva]=useState(false);
  const [consultoriaId,setConsultoriaId]=useState(''),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
- const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null}[]>([]);
+ const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string}[]>([]);
+ const [tela,setTela]=useState<'lista'|'formulario'>('lista'),[busca,setBusca]=useState(''),[pagina,setPagina]=useState(0),[total,setTotal]=useState(0),[carregandoLista,setCarregandoLista]=useState(false);
+ const [filtroNivel,setFiltroNivel]=useState(''),[filtroData,setFiltroData]=useState('');
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
  useEffect(()=>{
   let ativo=true;
@@ -33,8 +35,6 @@ export default function CondicoesAmbientais(){
     const consultoriaId=links?.[0]?.consultoria_id;
     if(!consultoriaId)return;
     setConsultoriaId(consultoriaId);
-    const {data:lista}=await db.from('avaliacoes_ambientais').select('id,titulo,data_coleta').eq('consultoria_id',consultoriaId).order('created_at',{ascending:false}).limit(30);
-    if(ativo)setAvaliacoes(lista||[]);
     const {data,error}=await db.from('clientes').select('id,razao_social').eq('consultoria_id',consultoriaId).order('razao_social');
     if(error)throw error;
     if(!ativo)return;
@@ -57,6 +57,25 @@ export default function CondicoesAmbientais(){
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
  useEffect(()=>{setEstacao('');setEstacoes([]);if(posto)supabase().from('estacoes_trabalho').select('id,nome').eq('posto_id',posto).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setEstacoes(data||[])})},[posto]);
+ useEffect(()=>{
+  if(!consultoriaId||!cliente)return;
+  let ativo=true;
+  (async()=>{
+   setCarregandoLista(true);
+   let q=supabase().from('avaliacoes_ambientais').select('id,titulo,data_coleta,nivel,created_at',{count:'exact'}).eq('consultoria_id',consultoriaId).eq('cliente_id',cliente);
+   if(busca.trim())q=q.ilike('titulo','%'+busca.trim().replace(/[%_,]/g,'')+'%');
+   if(filtroNivel)q=q.eq('nivel',filtroNivel);
+   if(filtroData)q=q.eq('data_coleta',filtroData);
+   const {data,error,count}=await q.order('created_at',{ascending:false}).range(pagina*20,pagina*20+19);
+   if(ativo){if(error)setErro(error.message);else{setAvaliacoes(data||[]);setTotal(count||0)}setCarregandoLista(false)}
+  })();
+  return()=>{ativo=false};
+ },[consultoriaId,cliente,busca,pagina,filtroNivel,filtroData,tela]);
+ function novaAvaliacao(){
+  setTitulo('');setData('');setNivel('cliente');setPlanta('');setInstalacao('');setPosto('');setEstacao('');
+  setMetodologia('');setConclusao('');setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
+  setPontos([novoPonto()]);setErro('');setMensagem('');setTela('formulario');
+ }
  async function salvar(){
   setErro('');setMensagem('');
   if(!cliente||!consultoriaId||!titulo.trim()){setErro('Informe a empresa e o título da avaliação.');return}
@@ -81,7 +100,7 @@ export default function CondicoesAmbientais(){
      if(mErro)throw mErro;
     }
    }
-   setAvaliacoes(atual=>[{id:avaliacaoId,titulo:titulo.trim(),data_coleta:data||null},...atual]);
+   setPagina(0);setTela('lista');
    setMensagem('Avaliação salva com sucesso no Supabase.');
   }catch(e){
    if(avaliacaoId)await db.from('avaliacoes_ambientais').delete().eq('id',avaliacaoId);
@@ -102,6 +121,7 @@ export default function CondicoesAmbientais(){
   setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:'',...(av.criterios||{})});
   setMetodologia(av.metodologia||'');setConclusao(av.conclusao||'');
   setPontos((pts||[]).map(p=>({id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))})));
+  setTela('formulario');
   setMensagem('Avaliação recuperada para consulta. O botão Salvar cria uma nova avaliação, sem alterar a original.');
  }
  const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label>{nome}<select value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
@@ -109,11 +129,20 @@ export default function CondicoesAmbientais(){
  const mudarMedicao=(pid:string,mid:string,campo:keyof Omit<Medicao,'id'>,valor:string)=>setPontos(ps=>ps.map(p=>p.id===pid?{...p,medicoes:p.medicoes.map(m=>m.id===mid?{...m,[campo]:valor}:m)}:p));
  return <><header><nav><strong>Portal NR-17 — Condições Ambientais</strong></nav></header><main><section style={{maxWidth:1100}}>
  <p><Link href="/">← Voltar ao painel</Link></p><h1>Condições Ambientais</h1>
- <p style={{color:'#53657a'}}>Ambiente de testes: as avaliações podem ser salvas e consultadas. A edição de registros existentes será implementada na próxima etapa.</p>
+ <p style={{color:'#53657a'}}>Avaliações ambientais da Empresa Ativa. Consulte os registros ou inicie uma nova coleta.</p>
  {erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
  {mensagem&&<p role="status" style={{color:'#166534'}}>{mensagem}</p>}
- <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={salvar} disabled={salvando||!consultoriaId}>{salvando?'Salvando...':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>Cada salvamento cria uma nova avaliação.</span></div>
- {avaliacoes.length>0&&<details><summary>Avaliações salvas ({avaliacoes.length})</summary><div style={{display:'grid',gap:8,margin:'10px 0'}}>{avaliacoes.map(a=><button type="button" key={a.id} onClick={()=>carregarAvaliacao(a.id)}>{a.titulo} — {a.data_coleta||'Sem data'}</button>)}</div></details>}
+ {tela==='lista'?<div>
+ <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><h2>Avaliações cadastradas</h2><button type="button" onClick={novaAvaliacao}>+ Nova avaliação</button></div>
+ <div className="ambiental-grid">
+ <label>Pesquisar por título<input value={busca} onChange={e=>{setBusca(e.target.value);setPagina(0)}} placeholder="Digite o título da avaliação"/></label>
+ <label>Nível<select value={filtroNivel} onChange={e=>{setFiltroNivel(e.target.value);setPagina(0)}}><option value="">Todos</option><option value="cliente">Cliente</option><option value="planta">Planta</option><option value="instalacao">Instalação</option><option value="posto">Posto</option><option value="estacao">Estação</option></select></label>
+ <label>Data da coleta<input type="date" value={filtroData} onChange={e=>{setFiltroData(e.target.value);setPagina(0)}}/></label>
+ </div>
+ {!cliente?<p>Selecione uma Empresa Ativa no painel para consultar as avaliações.</p>:carregandoLista?<p>Carregando avaliações...</p>:avaliacoes.length===0?<p>Nenhuma avaliação encontrada para os filtros selecionados.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr><th style={{textAlign:'left'}}>Avaliação</th><th style={{textAlign:'left'}}>Data</th><th style={{textAlign:'left'}}>Nível</th><th>Ação</th></tr></thead><tbody>{avaliacoes.map(a=><tr key={a.id} style={{borderTop:'1px solid #e2e8f0'}}><td style={{padding:'12px 6px'}}>{a.titulo}</td><td>{a.data_coleta||'—'}</td><td>{a.nivel}</td><td><button type="button" onClick={()=>carregarAvaliacao(a.id)}>Abrir</button></td></tr>)}</tbody></table></div>}
+ <div style={{display:'flex',gap:12,alignItems:'center',marginTop:16}}><button type="button" disabled={pagina===0||carregandoLista} onClick={()=>setPagina(p=>p-1)}>Anterior</button><span>Página {pagina+1} de {Math.max(1,Math.ceil(total/20))} — {total} avaliações</span><button type="button" disabled={(pagina+1)*20>=total||carregandoLista} onClick={()=>setPagina(p=>p+1)}>Próxima</button></div>
+ </div>:<>
+ <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={()=>{setTela('lista');setErro('');setMensagem('')}}>← Voltar à lista</button><button type="button" onClick={salvar} disabled={salvando||!consultoriaId}>{salvando?'Salvando...':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>Nesta etapa, salvar cria um novo registro.</span></div>
  <h2>Identificação da avaliação</h2>
  <div className="ambiental-grid">
  <label>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ex.: Avaliação ambiental do escritório"/></label>
@@ -149,6 +178,7 @@ export default function CondicoesAmbientais(){
  <h2>Informações técnicas</h2><label>Metodologia<textarea rows={3} value={metodologia} onChange={e=>setMetodologia(e.target.value)}/></label>
  <label>Conclusão técnica<textarea rows={3} value={conclusao} onChange={e=>setConclusao(e.target.value)}/></label>
  <p style={{fontSize:13,color:'#53657a'}}>Os critérios de referência são informativos, definidos por tipo de medição nesta avaliação, e não classificam riscos automaticamente. Edição de registros salvos, microfone e associação aos riscos serão integrados nas próximas etapas.</p>
+ </>}
  <style>{`.ambiental-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.ambiental-grid label,section>label,article>label{display:grid;gap:5px;margin-bottom:12px}input,select,textarea{max-width:100%;width:100%;box-sizing:border-box}`}</style>
  </section></main></>;
 }
