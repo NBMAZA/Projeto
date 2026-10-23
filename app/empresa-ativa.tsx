@@ -34,7 +34,12 @@ export default function EmpresaAtiva({consultoriaId,onChange}:{consultoriaId:str
    finally{if(ativo)setCarregando(false)}
   }
   carregar();
-  return()=>{ativo=false};
+  const atualizar=()=>{if(document.visibilityState==='visible')void carregar()};
+  const aoCadastrar=()=>{void carregar()};
+  window.addEventListener('focus',atualizar);
+  document.addEventListener('visibilitychange',atualizar);
+  window.addEventListener('portal-nr17:clientes-atualizados',aoCadastrar);
+  return()=>{ativo=false;window.removeEventListener('focus',atualizar);document.removeEventListener('visibilitychange',atualizar);window.removeEventListener('portal-nr17:clientes-atualizados',aoCadastrar)};
  },[consultoriaId]);
  function alterar(id:string){
   if(!usuario||!consultoriaId)return;
