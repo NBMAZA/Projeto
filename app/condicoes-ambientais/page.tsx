@@ -20,7 +20,7 @@ export default function CondicoesAmbientais(){
  const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string}[]>([]);
  const [tela,setTela]=useState<'lista'|'formulario'>('lista'),[busca,setBusca]=useState(''),[pagina,setPagina]=useState(0),[total,setTotal]=useState(0),[carregandoLista,setCarregandoLista]=useState(false);
  const [filtroNivel,setFiltroNivel]=useState(''),[filtroData,setFiltroData]=useState('');
- const [seletorRiscoAberto,setSeletorRiscoAberto]=useState(false),[buscaRisco,setBuscaRisco]=useState('');
+ const [seletorRiscoAberto,setSeletorRiscoAberto]=useState(false),[riscoTitulo,setRiscoTitulo]=useState(''),[riscoGrupo,setRiscoGrupo]=useState(''),[riscoObservacoes,setRiscoObservacoes]=useState(''),[riscoNivel,setRiscoNivel]=useState<Nivel>('cliente'),[riscoEstrutura,setRiscoEstrutura]=useState(''),[criandoRisco,setCriandoRisco]=useState(false);
  const [situacao,setSituacao]=useState<'rascunho'|'concluida'|'reaberta'>('rascunho'),[riscos,setRiscos]=useState<{id:string;titulo:string}[]>([]),[riscosSelecionados,setRiscosSelecionados]=useState<string[]>([]);
  const [editandoId,setEditandoId]=useState<string|null>(null),[estruturaOriginal,setEstruturaOriginal]=useState<string|null>(null);
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
@@ -76,10 +76,33 @@ export default function CondicoesAmbientais(){
  },[consultoriaId,cliente,busca,pagina,filtroNivel,filtroData,tela]);
  useEffect(()=>{if(!cliente)return;let ativo=true;supabase().from('riscos_identificados').select('id,titulo').eq('cliente_id',cliente).order('titulo').then(({data,error})=>{if(ativo){if(error)setErro(error.message);else setRiscos(data||[])}});return()=>{ativo=false}},[cliente]);
  function novaAvaliacao(){
-  setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setBuscaRisco('');
+  setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setRiscoTitulo('');
   setTitulo('');setData('');setNivel('cliente');setPlanta('');setInstalacao('');setPosto('');setEstacao('');
   setMetodologia('');setConclusao('');setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
   setPontos([novoPonto()]);setErro('');setMensagem('');setTela('formulario');
+ }
+ async function incluirRisco(){
+  setErro('');
+  if(!editandoId){setErro('Salve a avaliação ambiental antes de incluir um risco.');return}
+  if(!riscoTitulo.trim()){setErro('Informe o título do risco.');return}
+  if(riscoNivel!=='cliente'&&!riscoEstrutura){setErro('Selecione a estrutura do risco.');return}
+  setCriandoRisco(true);
+  const db=supabase();
+  let novoId='';
+  try{
+   const {data:{user},error:authError}=await db.auth.getUser();
+   if(authError)throw authError;
+   if(!user)throw new Error('Sessão expirada.');
+   const {data:novo,error:ie}=await db.from('riscos_identificados').insert({cliente_id:cliente,nivel:riscoNivel,estrutura_id:riscoNivel==='cliente'?null:riscoEstrutura,origem:'outra',titulo:riscoTitulo.trim(),grupo_risco:riscoGrupo.trim()||null,observacoes:riscoObservacoes.trim()||null,criado_por:user.id}).select('id,titulo').single();
+   if(ie)throw ie;novoId=novo.id;
+   const {error:ve}=await db.from('avaliacoes_ambientais_riscos').insert({avaliacao_id:editandoId,risco_id:novo.id});
+   if(ve)throw ve;
+   setRiscos(a=>[...a,novo]);setRiscosSelecionados(a=>[...a,novo.id]);setSeletorRiscoAberto(false);setRiscoTitulo('');setRiscoGrupo('');setRiscoObservacoes('');
+   setMensagem('Risco cadastrado e vinculado à avaliação.');
+  }catch(e){
+   if(novoId)await db.from('riscos_identificados').delete().eq('id',novoId).eq('cliente_id',cliente);
+   setErro(e instanceof Error?e.message:'Não foi possível incluir o risco.');
+  }finally{setCriandoRisco(false)}
  }
  async function salvarVinculos(id:string){
   const db=supabase();
@@ -212,20 +235,22 @@ export default function CondicoesAmbientais(){
  </article>)}
  <button type="button" onClick={()=>setPontos(ps=>[...ps,novoPonto()])}>+ Adicionar ponto de coleta</button>
  <h2>Riscos vinculados</h2>
- <p style={{fontSize:13,color:'#53657a'}}>Somente os riscos associados a esta avaliação são exibidos. A vinculação não classifica riscos automaticamente.</p>
+ <p style={{fontSize:13,color:'#53657a'}}>Cadastre riscos específicos desta avaliação. O sistema não classifica riscos automaticamente.</p>
  <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:12}}>
- <button type="button" disabled={situacao==='concluida'} onClick={()=>{setBuscaRisco('');setSeletorRiscoAberto(true)}}>+ Adicionar risco</button>
+ <button type="button" disabled={situacao==='concluida'||!editandoId} onClick={()=>{setRiscoTitulo('');setRiscoGrupo('');setRiscoObservacoes('');setRiscoNivel(nivel);setRiscoEstrutura(editandoId?estruturaOriginal||'':nivel==='cliente'?'':nivel==='planta'?planta:nivel==='instalacao'?instalacao:nivel==='posto'?posto:estacao);setSeletorRiscoAberto(true)}}>+ Incluir risco</button>
  <span style={{fontSize:12,color:'#53657a'}}>{riscosSelecionados.length} risco(s) vinculado(s)</span>
  </div>
+ {!editandoId&&<p style={{fontSize:12,color:'#53657a'}}>Salve primeiro a avaliação ambiental para incluir riscos.</p>}
  {riscosSelecionados.length===0?<p>Nenhum risco vinculado a esta avaliação.</p>:<div style={{display:'grid',gap:8,marginBottom:16}}>{riscosSelecionados.map(id=>{const risco=riscos.find(r=>r.id===id);return <div key={id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,border:'1px solid #cbd5e1',padding:10,borderRadius:8}}><span>{risco?.titulo||'Risco cadastrado'}</span><button type="button" disabled={situacao==='concluida'} onClick={()=>setRiscosSelecionados(a=>a.filter(x=>x!==id))}>Remover vínculo</button></div>})}</div>}
- {seletorRiscoAberto&&<div role="presentation" style={{position:'fixed',inset:0,background:'rgba(15,23,42,.55)',display:'flex',justifyContent:'center',alignItems:'center',padding:16,zIndex:1000}} onClick={()=>setSeletorRiscoAberto(false)}>
- <div role="dialog" aria-modal="true" aria-label="Adicionar risco à avaliação" onClick={e=>e.stopPropagation()} style={{background:'#fff',color:'#0f172a',borderRadius:12,padding:20,width:'100%',maxWidth:640,maxHeight:'80vh',overflowY:'auto'}}>
- <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h3>Adicionar risco</h3><button type="button" onClick={()=>setSeletorRiscoAberto(false)}>Fechar</button></div>
- <label>Pesquisar risco<input autoFocus value={buscaRisco} onChange={e=>setBuscaRisco(e.target.value)} placeholder="Digite o título do risco"/></label>
- <div style={{display:'grid',gap:8,marginTop:12}}>
- {riscos.filter(r=>!riscosSelecionados.includes(r.id)&&r.titulo.toLocaleLowerCase('pt-BR').includes(buscaRisco.toLocaleLowerCase('pt-BR'))).slice(0,30).map(r=><div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,borderBottom:'1px solid #e2e8f0',padding:'8px 0'}}><span>{r.titulo}</span><button type="button" onClick={()=>{setRiscosSelecionados(a=>[...a,r.id]);setSeletorRiscoAberto(false)}}>Selecionar</button></div>)}
- {riscos.filter(r=>!riscosSelecionados.includes(r.id)&&r.titulo.toLocaleLowerCase('pt-BR').includes(buscaRisco.toLocaleLowerCase('pt-BR'))).length===0&&<p>Nenhum risco disponível para esta pesquisa.</p>}
- </div><p style={{fontSize:12,color:'#53657a'}}>Exibindo até 30 resultados. Refine a pesquisa para encontrar outros riscos.</p>
+ {seletorRiscoAberto&&<div role="presentation" style={{position:'fixed',inset:0,background:'rgba(15,23,42,.55)',display:'flex',justifyContent:'center',alignItems:'center',padding:16,zIndex:1000}} onClick={()=>!criandoRisco&&setSeletorRiscoAberto(false)}>
+ <div role="dialog" aria-modal="true" aria-label="Incluir novo risco" onClick={e=>e.stopPropagation()} style={{background:'#fff',color:'#0f172a',borderRadius:12,padding:20,width:'100%',maxWidth:640,maxHeight:'80vh',overflowY:'auto'}}>
+ <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h3>Incluir novo risco</h3><button type="button" disabled={criandoRisco} onClick={()=>setSeletorRiscoAberto(false)}>Fechar</button></div>
+ <label>Título do risco<input autoFocus value={riscoTitulo} onChange={e=>setRiscoTitulo(e.target.value)} placeholder="Identificação do risco"/></label>
+ <label>Grupo de risco<input value={riscoGrupo} onChange={e=>setRiscoGrupo(e.target.value)} placeholder="Grupo ou categoria"/></label>
+ <label>Nível organizacional<select value={riscoNivel} onChange={e=>{setRiscoNivel(e.target.value as Nivel);setRiscoEstrutura('')}}>{([['cliente','Empresa'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto'],['estacao','Estação']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
+ {riscoNivel!=='cliente'&&<label>Estrutura correspondente<select value={riscoEstrutura} onChange={e=>setRiscoEstrutura(e.target.value)}><option value="">Selecione</option>{(riscoNivel==='planta'?plantas:riscoNivel==='instalacao'?instalacoes:riscoNivel==='posto'?postos:estacoes).map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}{estruturaOriginal&&riscoNivel===nivel&&!([...(riscoNivel==='planta'?plantas:riscoNivel==='instalacao'?instalacoes:riscoNivel==='posto'?postos:estacoes)].some(x=>x.id===estruturaOriginal))&&<option value={estruturaOriginal}>Estrutura vinculada à avaliação</option>}</select></label>}
+ <label>Observações<textarea rows={3} value={riscoObservacoes} onChange={e=>setRiscoObservacoes(e.target.value)}/></label>
+ <div style={{display:'flex',gap:10,marginTop:14}}><button type="button" disabled={criandoRisco} onClick={incluirRisco}>{criandoRisco?'Salvando...':'Salvar e vincular risco'}</button><button type="button" disabled={criandoRisco} onClick={()=>setSeletorRiscoAberto(false)}>Cancelar</button></div>
  </div></div>}
  <h2>Informações técnicas</h2><label>Metodologia<textarea rows={3} value={metodologia} onChange={e=>setMetodologia(e.target.value)}/></label>
  <label>Conclusão técnica<textarea rows={3} value={conclusao} onChange={e=>setConclusao(e.target.value)}/></label>
