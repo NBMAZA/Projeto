@@ -20,6 +20,7 @@ export default function CondicoesAmbientais(){
  const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string}[]>([]);
  const [tela,setTela]=useState<'lista'|'formulario'>('lista'),[busca,setBusca]=useState(''),[pagina,setPagina]=useState(0),[total,setTotal]=useState(0),[carregandoLista,setCarregandoLista]=useState(false);
  const [filtroNivel,setFiltroNivel]=useState(''),[filtroData,setFiltroData]=useState('');
+ const [seletorRiscoAberto,setSeletorRiscoAberto]=useState(false),[buscaRisco,setBuscaRisco]=useState('');
  const [situacao,setSituacao]=useState<'rascunho'|'concluida'|'reaberta'>('rascunho'),[riscos,setRiscos]=useState<{id:string;titulo:string}[]>([]),[riscosSelecionados,setRiscosSelecionados]=useState<string[]>([]);
  const [editandoId,setEditandoId]=useState<string|null>(null),[estruturaOriginal,setEstruturaOriginal]=useState<string|null>(null);
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
@@ -75,7 +76,7 @@ export default function CondicoesAmbientais(){
  },[consultoriaId,cliente,busca,pagina,filtroNivel,filtroData,tela]);
  useEffect(()=>{if(!cliente)return;let ativo=true;supabase().from('riscos_identificados').select('id,titulo').eq('cliente_id',cliente).order('titulo').then(({data,error})=>{if(ativo){if(error)setErro(error.message);else setRiscos(data||[])}});return()=>{ativo=false}},[cliente]);
  function novaAvaliacao(){
-  setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setRiscosSelecionados([]);
+  setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setBuscaRisco('');
   setTitulo('');setData('');setNivel('cliente');setPlanta('');setInstalacao('');setPosto('');setEstacao('');
   setMetodologia('');setConclusao('');setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
   setPontos([novoPonto()]);setErro('');setMensagem('');setTela('formulario');
@@ -210,8 +211,22 @@ export default function CondicoesAmbientais(){
  <button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[...x.medicoes,novaMedicao()]}:x))}>+ Adicionar medição</button>
  </article>)}
  <button type="button" onClick={()=>setPontos(ps=>[...ps,novoPonto()])}>+ Adicionar ponto de coleta</button>
- <h2>Riscos vinculados</h2><p style={{fontSize:13,color:'#53657a'}}>Selecione riscos já cadastrados para esta empresa. A vinculação não classifica riscos automaticamente.</p>
- {riscos.length===0?<p>Nenhum risco cadastrado para esta empresa.</p>:<div style={{display:'grid',gap:8,marginBottom:16}}>{riscos.map(r=><label key={r.id} style={{display:'flex',alignItems:'center',gap:8}}><input type="checkbox" style={{width:'auto'}} disabled={situacao==='concluida'} checked={riscosSelecionados.includes(r.id)} onChange={e=>setRiscosSelecionados(a=>e.target.checked?[...a,r.id]:a.filter(x=>x!==r.id))}/>{r.titulo}</label>)}</div>}
+ <h2>Riscos vinculados</h2>
+ <p style={{fontSize:13,color:'#53657a'}}>Somente os riscos associados a esta avaliação são exibidos. A vinculação não classifica riscos automaticamente.</p>
+ <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:12}}>
+ <button type="button" disabled={situacao==='concluida'} onClick={()=>{setBuscaRisco('');setSeletorRiscoAberto(true)}}>+ Adicionar risco</button>
+ <span style={{fontSize:12,color:'#53657a'}}>{riscosSelecionados.length} risco(s) vinculado(s)</span>
+ </div>
+ {riscosSelecionados.length===0?<p>Nenhum risco vinculado a esta avaliação.</p>:<div style={{display:'grid',gap:8,marginBottom:16}}>{riscosSelecionados.map(id=>{const risco=riscos.find(r=>r.id===id);return <div key={id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,border:'1px solid #cbd5e1',padding:10,borderRadius:8}}><span>{risco?.titulo||'Risco cadastrado'}</span><button type="button" disabled={situacao==='concluida'} onClick={()=>setRiscosSelecionados(a=>a.filter(x=>x!==id))}>Remover vínculo</button></div>})}</div>}
+ {seletorRiscoAberto&&<div role="presentation" style={{position:'fixed',inset:0,background:'rgba(15,23,42,.55)',display:'flex',justifyContent:'center',alignItems:'center',padding:16,zIndex:1000}} onClick={()=>setSeletorRiscoAberto(false)}>
+ <div role="dialog" aria-modal="true" aria-label="Adicionar risco à avaliação" onClick={e=>e.stopPropagation()} style={{background:'#fff',color:'#0f172a',borderRadius:12,padding:20,width:'100%',maxWidth:640,maxHeight:'80vh',overflowY:'auto'}}>
+ <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}><h3>Adicionar risco</h3><button type="button" onClick={()=>setSeletorRiscoAberto(false)}>Fechar</button></div>
+ <label>Pesquisar risco<input autoFocus value={buscaRisco} onChange={e=>setBuscaRisco(e.target.value)} placeholder="Digite o título do risco"/></label>
+ <div style={{display:'grid',gap:8,marginTop:12}}>
+ {riscos.filter(r=>!riscosSelecionados.includes(r.id)&&r.titulo.toLocaleLowerCase('pt-BR').includes(buscaRisco.toLocaleLowerCase('pt-BR'))).slice(0,30).map(r=><div key={r.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,borderBottom:'1px solid #e2e8f0',padding:'8px 0'}}><span>{r.titulo}</span><button type="button" onClick={()=>{setRiscosSelecionados(a=>[...a,r.id]);setSeletorRiscoAberto(false)}}>Selecionar</button></div>)}
+ {riscos.filter(r=>!riscosSelecionados.includes(r.id)&&r.titulo.toLocaleLowerCase('pt-BR').includes(buscaRisco.toLocaleLowerCase('pt-BR'))).length===0&&<p>Nenhum risco disponível para esta pesquisa.</p>}
+ </div><p style={{fontSize:12,color:'#53657a'}}>Exibindo até 30 resultados. Refine a pesquisa para encontrar outros riscos.</p>
+ </div></div>}
  <h2>Informações técnicas</h2><label>Metodologia<textarea rows={3} value={metodologia} onChange={e=>setMetodologia(e.target.value)}/></label>
  <label>Conclusão técnica<textarea rows={3} value={conclusao} onChange={e=>setConclusao(e.target.value)}/></label>
  <p style={{fontSize:13,color:'#53657a'}}>Os critérios de referência são informativos, definidos por tipo de medição nesta avaliação, e não classificam riscos automaticamente. O vínculo organizacional de uma avaliação existente não pode ser alterado nesta versão. Microfone e associação aos riscos serão integrados nas próximas etapas.</p>
