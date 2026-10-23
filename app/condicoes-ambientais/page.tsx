@@ -16,6 +16,8 @@ export default function CondicoesAmbientais(){
  const [nivel,setNivel]=useState<Nivel>('cliente'),[data,setData]=useState(''),[titulo,setTitulo]=useState(''),[metodologia,setMetodologia]=useState(''),[conclusao,setConclusao]=useState('');
  const [pontos,setPontos]=useState<Ponto[]>([novoPonto()]),[erro,setErro]=useState('');
  const [empresaAtiva,setEmpresaAtiva]=useState(false);
+ const [consultoriaId,setConsultoriaId]=useState(''),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
+ const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null}[]>([]);
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
  useEffect(()=>{
   let ativo=true;
@@ -30,6 +32,9 @@ export default function CondicoesAmbientais(){
     if(!ativo)return;
     const consultoriaId=links?.[0]?.consultoria_id;
     if(!consultoriaId)return;
+    setConsultoriaId(consultoriaId);
+    const {data:lista}=await db.from('avaliacoes_ambientais').select('id,titulo,data_coleta').eq('consultoria_id',consultoriaId).order('created_at',{ascending:false}).limit(30);
+    if(ativo)setAvaliacoes(lista||[]);
     const {data,error}=await db.from('clientes').select('id,razao_social').eq('consultoria_id',consultoriaId).order('razao_social');
     if(error)throw error;
     if(!ativo)return;
@@ -52,13 +57,63 @@ export default function CondicoesAmbientais(){
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
  useEffect(()=>{setEstacao('');setEstacoes([]);if(posto)supabase().from('estacoes_trabalho').select('id,nome').eq('posto_id',posto).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setEstacoes(data||[])})},[posto]);
+ async function salvar(){
+  setErro('');setMensagem('');
+  if(!cliente||!consultoriaId||!titulo.trim()){setErro('Informe a empresa e o título da avaliação.');return}
+  const estruturaId=nivel==='cliente'?null:nivel==='planta'?planta:nivel==='instalacao'?instalacao:nivel==='posto'?posto:estacao;
+  if(nivel!=='cliente'&&!estruturaId){setErro('Selecione a estrutura organizacional correspondente ao nível escolhido.');return}
+  setSalvando(true);
+  const db=supabase();
+  let avaliacaoId='';
+  try{
+   const {data:{user},error:authErro}=await db.auth.getUser();
+   if(authErro)throw authErro;
+   if(!user)throw new Error('Sessão expirada. Entre novamente.');
+   const {data:av,error:avErro}=await db.from('avaliacoes_ambientais').insert({consultoria_id:consultoriaId,cliente_id:cliente,nivel,estrutura_id:estruturaId,titulo:titulo.trim(),data_coleta:data||null,criterios,metodologia,conclusao,criado_por:user.id}).select('id').single();
+   if(avErro)throw avErro;
+   avaliacaoId=av.id;
+   for(let i=0;i<pontos.length;i++){
+    const p=pontos[i];
+    const {data:pt,error:ptErro}=await db.from('pontos_coleta_ambientais').insert({avaliacao_id:avaliacaoId,nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,ordem:i}).select('id').single();
+    if(ptErro)throw ptErro;
+    if(p.medicoes.length){
+     const {error:mErro}=await db.from('medicoes_ambientais').insert(p.medicoes.map((m,j)=>({ponto_id:pt.id,tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes,ordem:j})));
+     if(mErro)throw mErro;
+    }
+   }
+   setAvaliacoes(atual=>[{id:avaliacaoId,titulo:titulo.trim(),data_coleta:data||null},...atual]);
+   setMensagem('Avaliação salva com sucesso no Supabase.');
+  }catch(e){
+   if(avaliacaoId)await db.from('avaliacoes_ambientais').delete().eq('id',avaliacaoId);
+   setErro(e instanceof Error?e.message:'Não foi possível salvar a avaliação.');
+  }finally{setSalvando(false)}
+ }
+ async function carregarAvaliacao(id:string){
+  setErro('');setMensagem('');
+  const db=supabase();
+  const {data:av,error:ae}=await db.from('avaliacoes_ambientais').select('*').eq('id',id).eq('consultoria_id',consultoriaId).single();
+  if(ae||!av){setErro(ae?.message||'Avaliação não encontrada.');return}
+  if(av.cliente_id!==cliente){setErro('Selecione a empresa da avaliação no painel para abrir este registro.');return}
+  const {data:pts,error:pe}=await db.from('pontos_coleta_ambientais').select('*').eq('avaliacao_id',id).order('ordem');
+  if(pe){setErro(pe.message);return}
+  const {data:ms,error:me}=await db.from('medicoes_ambientais').select('*').in('ponto_id',(pts||[]).map(p=>p.id).length?(pts||[]).map(p=>p.id):['00000000-0000-0000-0000-000000000000']).order('ordem');
+  if(me){setErro(me.message);return}
+  setTitulo(av.titulo);setData(av.data_coleta||'');setNivel(av.nivel as Nivel);
+  setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:'',...(av.criterios||{})});
+  setMetodologia(av.metodologia||'');setConclusao(av.conclusao||'');
+  setPontos((pts||[]).map(p=>({id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))})));
+  setMensagem('Avaliação recuperada para consulta. O botão Salvar cria uma nova avaliação, sem alterar a original.');
+ }
  const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label>{nome}<select value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
  const mudarPonto=(id:string,campo:'nome'|'localizacao'|'observacoes',valor:string)=>setPontos(ps=>ps.map(p=>p.id===id?{...p,[campo]:valor}:p));
  const mudarMedicao=(pid:string,mid:string,campo:keyof Omit<Medicao,'id'>,valor:string)=>setPontos(ps=>ps.map(p=>p.id===pid?{...p,medicoes:p.medicoes.map(m=>m.id===mid?{...m,[campo]:valor}:m)}:p));
  return <><header><nav><strong>Portal NR-17 — Condições Ambientais</strong></nav></header><main><section style={{maxWidth:1100}}>
  <p><Link href="/">← Voltar ao painel</Link></p><h1>Condições Ambientais</h1>
- <p style={{color:'#53657a'}}>Protótipo de preenchimento. Os dados ainda não são salvos; não utilize para registros definitivos.</p>
- {erro&&<p role="alert">{erro}</p>}
+ <p style={{color:'#53657a'}}>Ambiente de testes: as avaliações podem ser salvas e consultadas. A edição de registros existentes será implementada na próxima etapa.</p>
+ {erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
+ {mensagem&&<p role="status" style={{color:'#166534'}}>{mensagem}</p>}
+ <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={salvar} disabled={salvando||!consultoriaId}>{salvando?'Salvando...':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>Cada salvamento cria uma nova avaliação.</span></div>
+ {avaliacoes.length>0&&<details><summary>Avaliações salvas ({avaliacoes.length})</summary><div style={{display:'grid',gap:8,margin:'10px 0'}}>{avaliacoes.map(a=><button type="button" key={a.id} onClick={()=>carregarAvaliacao(a.id)}>{a.titulo} — {a.data_coleta||'Sem data'}</button>)}</div></details>}
  <h2>Identificação da avaliação</h2>
  <div className="ambiental-grid">
  <label>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ex.: Avaliação ambiental do escritório"/></label>
@@ -93,7 +148,7 @@ export default function CondicoesAmbientais(){
  <button type="button" onClick={()=>setPontos(ps=>[...ps,novoPonto()])}>+ Adicionar ponto de coleta</button>
  <h2>Informações técnicas</h2><label>Metodologia<textarea rows={3} value={metodologia} onChange={e=>setMetodologia(e.target.value)}/></label>
  <label>Conclusão técnica<textarea rows={3} value={conclusao} onChange={e=>setConclusao(e.target.value)}/></label>
- <p style={{fontSize:13,color:'#53657a'}}>Os critérios de referência são informativos, definidos por tipo de medição nesta avaliação, e não classificam riscos automaticamente. Salvamento, microfone e associação aos riscos serão integrados nas próximas etapas.</p>
+ <p style={{fontSize:13,color:'#53657a'}}>Os critérios de referência são informativos, definidos por tipo de medição nesta avaliação, e não classificam riscos automaticamente. Edição de registros salvos, microfone e associação aos riscos serão integrados nas próximas etapas.</p>
  <style>{`.ambiental-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.ambiental-grid label,section>label,article>label{display:grid;gap:5px;margin-bottom:12px}input,select,textarea{max-width:100%;width:100%;box-sizing:border-box}`}</style>
  </section></main></>;
 }
