@@ -252,9 +252,12 @@ export default function CondicoesAmbientais(){
  <label>Resultado<input value={m.resultado} onChange={e=>mudarMedicao(p.id,m.id,'resultado',e.target.value)} placeholder="Valor medido"/></label>
  </div>
  <label>Observações da medição<textarea rows={2} value={m.observacoes} onChange={e=>mudarMedicao(p.id,m.id,'observacoes',e.target.value)}/></label>
+ <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:10}}>
  <button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:x.medicoes.filter(y=>y.id!==m.id)}:x))}>Excluir medição {j+1}</button>
+ <button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[...x.medicoes.slice(0,j+1),novaMedicao(),...x.medicoes.slice(j+1)]}:x))}>+ Adicionar medição</button>
+ </div>
  </div>)}
- <button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[...x.medicoes,novaMedicao()]}:x))}>+ Adicionar medição</button>
+ {p.medicoes.length===0&&<button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[novaMedicao()]}:x))}>+ Adicionar medição</button>}
  </article>)}
  <button type="button" onClick={()=>setPontos(ps=>[...ps,novoPonto()])}>+ Adicionar ponto de coleta</button>
  <h2>Riscos vinculados</h2>
