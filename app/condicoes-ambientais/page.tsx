@@ -107,8 +107,9 @@ export default function CondicoesAmbientais(){
   setErroRisco('');
   if(!editandoId){setErroRisco('Salve a avaliação ambiental antes de incluir um risco.');return}
   if(!riscoTitulo.trim()){setErroRisco('Informe o título do risco.');return}
-  if(riscoNivel!=='cliente'&&!riscoEstrutura){setErroRisco('Selecione a estrutura correspondente ao nível selecionado.');return}
-  if(riscoNivel!=='cliente'&&!estruturasRisco[riscoNivel].some(x=>x.id===riscoEstrutura)){setErroRisco('A estrutura escolhida não pertence à Empresa Ativa. Selecione uma opção da lista.');return}
+  const nivelVinculo=nivel;
+  const estruturaVinculo=editandoId?estruturaOriginal:(nivel==='cliente'?null:nivel==='planta'?planta:nivel==='instalacao'?instalacao:nivel==='posto'?posto:estacao);
+  if(nivelVinculo!=='cliente'&&!estruturaVinculo){setErroRisco('A avaliação não possui um ambiente definido. Salve uma avaliação com ambiente válido antes de incluir o risco.');return}
   setCriandoRisco(true);
   const db=supabase();
   let novoId='';
@@ -116,7 +117,7 @@ export default function CondicoesAmbientais(){
    const {data:{user},error:authError}=await db.auth.getUser();
    if(authError)throw authError;
    if(!user)throw new Error('Sessão expirada.');
-   const {data:novo,error:ie}=await db.from('riscos_identificados').insert({cliente_id:cliente,nivel:riscoNivel,estrutura_id:riscoNivel==='cliente'?null:riscoEstrutura,origem:'outra',titulo:riscoTitulo.trim(),grupo_risco:riscoGrupo.trim()||null,observacoes:riscoObservacoes.trim()||null,criado_por:user.id}).select('id,titulo').single();
+   const {data:novo,error:ie}=await db.from('riscos_identificados').insert({cliente_id:cliente,nivel:nivelVinculo,estrutura_id:estruturaVinculo,origem:'outra',titulo:riscoTitulo.trim(),grupo_risco:riscoGrupo.trim()||null,observacoes:riscoObservacoes.trim()||null,criado_por:user.id}).select('id,titulo').single();
    if(ie)throw ie;novoId=novo.id;
    const {error:ve}=await db.from('avaliacoes_ambientais_riscos').insert({avaliacao_id:editandoId,risco_id:novo.id});
    if(ve)throw ve;
@@ -265,7 +266,7 @@ export default function CondicoesAmbientais(){
  <h2>Riscos vinculados</h2>
  <p style={{fontSize:13,color:'#53657a'}}>Cadastre riscos específicos desta avaliação. O sistema não classifica riscos automaticamente.</p>
  <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:12}}>
- <button type="button" disabled={situacao==='concluida'||!editandoId} onClick={()=>{setErroRisco('');setRiscoTitulo('');setRiscoGrupo('');setRiscoObservacoes('');setRiscoNivel(nivel);setRiscoEstrutura(editandoId?estruturaOriginal||'':nivel==='cliente'?'':nivel==='planta'?planta:nivel==='instalacao'?instalacao:nivel==='posto'?posto:estacao);setSeletorRiscoAberto(true)}}>+ Incluir risco</button>
+ <button type="button" disabled={situacao==='concluida'||!editandoId} onClick={()=>{setErroRisco('');setRiscoTitulo('');setRiscoGrupo('');setRiscoObservacoes('');setSeletorRiscoAberto(true)}}>+ Incluir risco</button>
  <span style={{fontSize:12,color:'#53657a'}}>{riscosSelecionados.length} risco(s) vinculado(s)</span>
  </div>
  {!editandoId&&<p style={{fontSize:12,color:'#53657a'}}>Salve primeiro a avaliação ambiental para incluir riscos.</p>}
@@ -276,8 +277,11 @@ export default function CondicoesAmbientais(){
  {erroRisco&&<p role="alert" style={{background:'#fef2f2',color:'#991b1b',border:'1px solid #fecaca',borderRadius:8,padding:12}}>{erroRisco}</p>}
  <label>Título do risco<input autoFocus value={riscoTitulo} onChange={e=>setRiscoTitulo(e.target.value)} placeholder="Identificação do risco"/></label>
  <label>Grupo de risco<input value={riscoGrupo} onChange={e=>setRiscoGrupo(e.target.value)} placeholder="Grupo ou categoria"/></label>
- <label>Nível organizacional<select value={riscoNivel} onChange={e=>{setRiscoNivel(e.target.value as Nivel);setRiscoEstrutura('')}}>{([['cliente','Empresa'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto'],['estacao','Estação']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
- {riscoNivel!=='cliente'&&<label>Estrutura correspondente<select value={riscoEstrutura} onChange={e=>setRiscoEstrutura(e.target.value)}><option value="">Selecione</option>{estruturasRisco[riscoNivel].map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select>{estruturasRisco[riscoNivel].length===0&&<small>Nenhuma estrutura deste nível cadastrada para a Empresa Ativa.</small>}</label>}
+ <div style={{padding:12,border:'1px solid #cbd5e1',borderRadius:8,background:'#f8fafc',marginTop:12,marginBottom:12}}>
+ <strong>Ambiente da avaliação (vínculo automático)</strong>
+ <p style={{margin:'6px 0 0'}}>{({cliente:'Empresa',planta:'Planta',instalacao:'Instalação',posto:'Posto',estacao:'Estação'} as Record<Nivel,string>)[nivel]} — {nivel==='cliente'?'Empresa Ativa':(estruturasRisco[nivel].find(x=>x.id===estruturaOriginal)?.nome||estruturaOriginal||'Ambiente vinculado à avaliação')}</p>
+ <small>O risco será associado somente a este ambiente.</small>
+ </div>
  <label>Observações<textarea rows={3} value={riscoObservacoes} onChange={e=>setRiscoObservacoes(e.target.value)}/></label>
  <div style={{display:'flex',gap:10,marginTop:14}}><button type="button" disabled={criandoRisco} onClick={incluirRisco}>{criandoRisco?'Salvando...':'Salvar e vincular risco'}</button><button type="button" disabled={criandoRisco} onClick={()=>setSeletorRiscoAberto(false)}>Cancelar</button></div>
  </div></div>}
