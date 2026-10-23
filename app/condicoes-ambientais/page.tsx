@@ -21,6 +21,7 @@ export default function CondicoesAmbientais(){
  const [tela,setTela]=useState<'lista'|'formulario'>('lista'),[busca,setBusca]=useState(''),[pagina,setPagina]=useState(0),[total,setTotal]=useState(0),[carregandoLista,setCarregandoLista]=useState(false);
  const [filtroNivel,setFiltroNivel]=useState(''),[filtroData,setFiltroData]=useState('');
  const [seletorRiscoAberto,setSeletorRiscoAberto]=useState(false),[riscoTitulo,setRiscoTitulo]=useState(''),[riscoGrupo,setRiscoGrupo]=useState(''),[riscoObservacoes,setRiscoObservacoes]=useState(''),[riscoNivel,setRiscoNivel]=useState<Nivel>('cliente'),[riscoEstrutura,setRiscoEstrutura]=useState(''),[criandoRisco,setCriandoRisco]=useState(false);
+ const [estruturasRisco,setEstruturasRisco]=useState<Record<'planta'|'instalacao'|'posto'|'estacao',Item[]>>({planta:[],instalacao:[],posto:[],estacao:[]});
  const [situacao,setSituacao]=useState<'rascunho'|'concluida'|'reaberta'>('rascunho'),[riscos,setRiscos]=useState<{id:string;titulo:string}[]>([]),[riscosSelecionados,setRiscosSelecionados]=useState<string[]>([]);
  const [editandoId,setEditandoId]=useState<string|null>(null),[estruturaOriginal,setEstruturaOriginal]=useState<string|null>(null);
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
@@ -74,6 +75,26 @@ export default function CondicoesAmbientais(){
   })();
   return()=>{ativo=false};
  },[consultoriaId,cliente,busca,pagina,filtroNivel,filtroData,tela]);
+ useEffect(()=>{
+  if(!cliente){setEstruturasRisco({planta:[],instalacao:[],posto:[],estacao:[]});return}
+  let ativo=true;
+  (async()=>{
+   const db=supabase();
+   const {data:pls,error:pe}=await db.from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome');
+   if(pe){if(ativo)setErro(pe.message);return}
+   const pids=(pls||[]).map(x=>x.id);
+   const {data:ins,error:ie}=pids.length?await db.from('instalacoes').select('id,nome').in('planta_id',pids).order('nome'):{data:[] as Item[],error:null};
+   if(ie){if(ativo)setErro(ie.message);return}
+   const iids=(ins||[]).map(x=>x.id);
+   const {data:pos,error:oe}=iids.length?await db.from('postos_trabalho').select('id,nome').in('instalacao_id',iids).order('nome'):{data:[] as Item[],error:null};
+   if(oe){if(ativo)setErro(oe.message);return}
+   const oids=(pos||[]).map(x=>x.id);
+   const {data:est,error:ee}=oids.length?await db.from('estacoes_trabalho').select('id,nome').in('posto_id',oids).order('nome'):{data:[] as Item[],error:null};
+   if(ee){if(ativo)setErro(ee.message);return}
+   if(ativo)setEstruturasRisco({planta:pls||[],instalacao:ins||[],posto:pos||[],estacao:est||[]});
+  })();
+  return()=>{ativo=false}
+ },[cliente]);
  useEffect(()=>{if(!cliente)return;let ativo=true;supabase().from('riscos_identificados').select('id,titulo').eq('cliente_id',cliente).order('titulo').then(({data,error})=>{if(ativo){if(error)setErro(error.message);else setRiscos(data||[])}});return()=>{ativo=false}},[cliente]);
  function novaAvaliacao(){
   setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setRiscoTitulo('');
@@ -248,7 +269,7 @@ export default function CondicoesAmbientais(){
  <label>Título do risco<input autoFocus value={riscoTitulo} onChange={e=>setRiscoTitulo(e.target.value)} placeholder="Identificação do risco"/></label>
  <label>Grupo de risco<input value={riscoGrupo} onChange={e=>setRiscoGrupo(e.target.value)} placeholder="Grupo ou categoria"/></label>
  <label>Nível organizacional<select value={riscoNivel} onChange={e=>{setRiscoNivel(e.target.value as Nivel);setRiscoEstrutura('')}}>{([['cliente','Empresa'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto'],['estacao','Estação']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
- {riscoNivel!=='cliente'&&<label>Estrutura correspondente<select value={riscoEstrutura} onChange={e=>setRiscoEstrutura(e.target.value)}><option value="">Selecione</option>{(riscoNivel==='planta'?plantas:riscoNivel==='instalacao'?instalacoes:riscoNivel==='posto'?postos:estacoes).map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}{estruturaOriginal&&riscoNivel===nivel&&!([...(riscoNivel==='planta'?plantas:riscoNivel==='instalacao'?instalacoes:riscoNivel==='posto'?postos:estacoes)].some(x=>x.id===estruturaOriginal))&&<option value={estruturaOriginal}>Estrutura vinculada à avaliação</option>}</select></label>}
+ {riscoNivel!=='cliente'&&<label>Estrutura correspondente<select value={riscoEstrutura} onChange={e=>setRiscoEstrutura(e.target.value)}><option value="">Selecione</option>{estruturasRisco[riscoNivel].map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select>{estruturasRisco[riscoNivel].length===0&&<small>Nenhuma estrutura deste nível cadastrada para a Empresa Ativa.</small>}</label>}
  <label>Observações<textarea rows={3} value={riscoObservacoes} onChange={e=>setRiscoObservacoes(e.target.value)}/></label>
  <div style={{display:'flex',gap:10,marginTop:14}}><button type="button" disabled={criandoRisco} onClick={incluirRisco}>{criandoRisco?'Salvando...':'Salvar e vincular risco'}</button><button type="button" disabled={criandoRisco} onClick={()=>setSeletorRiscoAberto(false)}>Cancelar</button></div>
  </div></div>}
