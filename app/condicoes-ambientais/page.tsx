@@ -124,7 +124,9 @@ export default function CondicoesAmbientais(){
    setMensagem('Risco cadastrado e vinculado à avaliação.');
   }catch(e){
    if(novoId)await db.from('riscos_identificados').delete().eq('id',novoId).eq('cliente_id',cliente);
-   setErroRisco(e instanceof Error?e.message:'Não foi possível incluir o risco.');
+   const falha=e as {message?:string;details?:string;hint?:string;code?:string}|null;
+   const detalhe=[falha?.message,falha?.details,falha?.hint].filter(Boolean).join(' — ');
+   setErroRisco(detalhe?('Não foi possível incluir o risco: '+detalhe+(falha?.code?' (código '+falha.code+')':'')):'Não foi possível incluir o risco. Verifique os dados e tente novamente.');
   }finally{setCriandoRisco(false)}
  }
  async function salvarVinculos(id:string){
