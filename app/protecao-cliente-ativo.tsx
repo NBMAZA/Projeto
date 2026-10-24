@@ -4,7 +4,7 @@ import {usePathname} from 'next/navigation';
 import Link from 'next/link';
 import {supabase} from '../lib/supabase';
 
-const modulos=new Set(['/plantas','/instalacoes','/postos','/estacoes','/cargos','/atividades','/vinculos-cargos','/condicoes-ambientais']);
+const modulos=new Set(['/plantas','/instalacoes','/postos','/estacoes','/cargos','/atividades','/vinculos-cargos','/condicoes-ambientais','/coleta-biomecanica']);
 export default function ProtecaoClienteAtivo({children}:{children:ReactNode}){
  const pathname=usePathname();
  const protegido=modulos.has(pathname);
