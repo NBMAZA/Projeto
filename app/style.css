@@ -32,3 +32,29 @@
 .postos-filtros label{display:block;margin-bottom:7px}
 .postos-filtros select{display:block;width:100%;min-width:0;max-width:100%;box-sizing:border-box}
 @media(max-width:760px){.postos-filtros{grid-template-columns:1fr;gap:14px}}
+
+
+/* ERGOBAX — identidade visual oficial: Gestão de Plantas e Instalações */
+.ergobax-gestao-page{--ergo-navy:#06274a;--ergo-green:#20ad5a;--ergo-blue:#468eb9;--ergo-muted:#64748b;font-family:Montserrat,Arial,sans-serif;color:var(--ergo-navy);min-height:100vh;background:#f4f7fa;padding-bottom:36px}
+.ergobax-gestao-page>header{background:linear-gradient(115deg,#06274a,#0c3d61);border-bottom:4px solid var(--ergo-green);color:#fff;padding:20px clamp(18px,4vw,52px);box-shadow:0 4px 14px #06274a20}
+.ergobax-gestao-page>header nav{gap:16px;flex-wrap:wrap}
+.ergobax-gestao-page>header strong{font-size:17px;letter-spacing:.02em}
+.ergobax-gestao-page>header a{color:#fff;text-decoration:none}
+.ergobax-gestao-page main{max-width:1240px;margin:28px auto;padding:0 clamp(14px,3vw,32px)}
+.ergobax-gestao-page section{background:#fff;border:1px solid #e1e8ef;border-radius:16px;padding:clamp(18px,3vw,34px);box-shadow:0 8px 28px #06274a0c}
+.ergobax-gestao-page h1{font-size:clamp(25px,3vw,33px);color:var(--ergo-navy);letter-spacing:-.035em;margin-top:0}
+.ergobax-gestao-page h2{font-size:20px;color:var(--ergo-navy);border-left:4px solid var(--ergo-green);padding-left:12px;margin-top:24px}
+.ergobax-gestao-page label{font-weight:600;color:#29445d}
+.ergobax-gestao-page input,.ergobax-gestao-page select,.ergobax-gestao-page textarea{font:inherit;color:#17314d;background:#fff;border:1px solid #cbd8e2;border-radius:9px;max-width:100%;min-width:0}
+.ergobax-gestao-page textarea{width:100%;padding:12px;resize:vertical}
+.ergobax-gestao-page select:disabled{background:#edf2f6;color:#50677c;cursor:not-allowed}
+.ergobax-gestao-page input:focus-visible,.ergobax-gestao-page select:focus-visible,.ergobax-gestao-page textarea:focus-visible,.ergobax-gestao-page button:focus-visible{outline:3px solid #468eb980;outline-offset:2px}
+.ergobax-gestao-page button{font:inherit;background:var(--ergo-navy);color:#fff;border-radius:9px;padding:11px 17px;font-weight:600;transition:background .15s ease}
+.ergobax-gestao-page button:hover:not(:disabled){background:#0d4977}
+.ergobax-gestao-page button[aria-pressed=true]{background:var(--ergo-green);color:#fff}
+.ergobax-gestao-page table{width:100%;border-collapse:separate;border-spacing:0;overflow:hidden;border:1px solid #e1e8ef;border-radius:12px}
+.ergobax-gestao-page th{background:#eaf1f7;color:var(--ergo-navy);font-size:13px;letter-spacing:.025em}
+.ergobax-gestao-page td{color:#30475c}
+.ergobax-gestao-page th,.ergobax-gestao-page td{padding:14px;border-bottom:1px solid #e8eef3}
+.ergobax-gestao-page .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+@media(max-width:680px){.ergobax-gestao-page section{overflow-x:auto}.ergobax-gestao-page>header{padding:16px}.ergobax-gestao-page table{min-width:520px}}
