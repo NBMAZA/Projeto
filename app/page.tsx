@@ -50,7 +50,7 @@ return (
         <section><h2>Definir senha</h2><form onSubmit={definirSenha}><input type="password" minLength={12} required value={novaSenha} onChange={e=>setNovaSenha(e.target.value)}/><button disabled={busy}>Salvar senha</button></form></section>
       ) : !user ? (
         <div style={{maxWidth:1160,margin:'0 auto',padding:'8px 0 40px'}}>
-          <nav id="conteudo-publico" aria-label="Informações sobre a ERGOBAX" style={{display:'flex',flexWrap:'wrap',gap:8,padding:'22px 8px 0',borderBottom:'1px solid #d9e2ef'}}>
+          <nav id="conteudo-publico" aria-label="Informações sobre a ERGOBAX" style={{display:'flex',flexWrap:'wrap',gap:8,padding:'6px 8px 0',borderBottom:'1px solid #d9e2ef'}}>
             {([{id:'inicio',titulo:'Início'},{id:'funcionalidades',titulo:'Funcionalidades'},{id:'planos',titulo:'Planos'},{id:'newbax',titulo:'Newbax'},{id:'contato',titulo:'Contato'}] as const).map(aba=><button key={aba.id} type="button" aria-current={abaPublica===aba.id?'page':undefined} onClick={()=>setAbaPublica(aba.id)} style={{borderRadius:'10px 10px 0 0',padding:'12px 18px',border:'1px solid #d9e2ef',borderBottom:abaPublica===aba.id?'3px solid #17a776':'1px solid #d9e2ef',background:abaPublica===aba.id?'#e8f8f1':'#fff',color:'#102d49',fontWeight:abaPublica===aba.id?800:500,cursor:'pointer'}}>{aba.titulo}</button>)}
           </nav>
           {abaPublica==='inicio'&&          <section style={{background:'#102d49',color:'#fff',borderRadius:18,padding:'clamp(22px,5vw,56px)',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,320px),1fr))',gap:32,alignItems:'center'}}>
