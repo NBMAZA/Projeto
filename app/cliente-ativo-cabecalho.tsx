@@ -34,9 +34,11 @@ export default function ClienteAtivoCabecalho(){
   void carregar();
   const {data:{subscription}}=db.auth.onAuthStateChange(()=>{void carregar()});
   const atualizar=()=>{if(document.visibilityState==='visible')void carregar()};
+  const sincronizar=(e:Event)=>setSelecionado((e as CustomEvent<{clienteId:string}>).detail?.clienteId||'');
+  window.addEventListener('portal-nr17:empresa-ativa',sincronizar);
   window.addEventListener('portal-nr17:clientes-atualizados',atualizar);
   window.addEventListener('focus',atualizar);
-  return()=>{vivo=false;subscription.unsubscribe();window.removeEventListener('portal-nr17:clientes-atualizados',atualizar);window.removeEventListener('focus',atualizar)};
+  return()=>{vivo=false;subscription.unsubscribe();window.removeEventListener('portal-nr17:empresa-ativa',sincronizar);window.removeEventListener('portal-nr17:clientes-atualizados',atualizar);window.removeEventListener('focus',atualizar)};
  },[]);
  function alterar(id:string){
   if(!contexto||id&&!clientes.some(c=>c.id===id))return;
