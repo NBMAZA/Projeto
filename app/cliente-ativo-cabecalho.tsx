@@ -1,11 +1,14 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
+import {usePathname} from 'next/navigation';
 import {supabase} from '../lib/supabase';
 
 type Cliente={id:string;razao_social:string;status:string|null};
 const chave=(usuario:string,consultoria:string)=>'portal-nr17:empresa-ativa:'+usuario+':'+consultoria;
 export default function ClienteAtivoCabecalho(){
+ const pathname=usePathname();
+ const ocultarSeletor=pathname==='/plantas'||pathname==='/instalacoes';
  const [contexto,setContexto]=useState<{usuario:string;consultoria:string}|null>(null);
  const [clientes,setClientes]=useState<Cliente[]>([]);
  const [selecionado,setSelecionado]=useState('');
@@ -57,7 +60,7 @@ export default function ClienteAtivoCabecalho(){
   else window.localStorage.removeItem(chave(contexto.usuario,contexto.consultoria));
   window.dispatchEvent(new CustomEvent('portal-nr17:empresa-ativa',{detail:{clienteId:id}}));
  }
- if(!contexto||!destino)return null;
+ if(!contexto||!destino||ocultarSeletor)return null;
  return createPortal(<div role="region" aria-label="Cliente ativo" style={{position:'sticky',top:0,zIndex:50,background:'#e9f5f2',borderBottom:'1px solid #b6d8cd',padding:'8px clamp(14px,3vw,36px)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
   <strong style={{fontSize:14,color:'#123d38'}}>Cliente ativo</strong>
   <select aria-label="Trocar cliente ativo" value={selecionado} onChange={e=>alterar(e.target.value)} style={{flex:'1 1 240px',maxWidth:560,padding:'8px 12px',borderRadius:8,border:'1px solid #8ab5a9',background:'#fff'}}>
