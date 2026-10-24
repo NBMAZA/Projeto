@@ -58,3 +58,10 @@
 .ergobax-gestao-page th,.ergobax-gestao-page td{padding:14px;border-bottom:1px solid #e8eef3}
 .ergobax-gestao-page .grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
 @media(max-width:680px){.ergobax-gestao-page section{overflow-x:auto}.ergobax-gestao-page>header{padding:16px}.ergobax-gestao-page table{min-width:520px}}
+
+
+/* Marca oficial nos cabecalhos dos modulos */
+.ergobax-gestao-page .ergobax-modulo-marca{display:flex;align-items:center;gap:18px;min-width:0;flex-wrap:wrap}
+.ergobax-gestao-page .ergobax-modulo-marca img{display:block;width:clamp(170px,23vw,280px);height:auto;max-height:76px;object-fit:contain;object-position:left center}
+.ergobax-gestao-page .ergobax-modulo-marca strong{font-size:16px;font-weight:600;color:#fff;border-left:1px solid #ffffff55;padding-left:18px}
+@media(max-width:600px){.ergobax-gestao-page .ergobax-modulo-marca{gap:10px}.ergobax-gestao-page .ergobax-modulo-marca strong{border-left:0;padding-left:0}}
