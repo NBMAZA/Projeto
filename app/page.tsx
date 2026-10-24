@@ -42,7 +42,7 @@ async function logout(){await supabase().auth.signOut();setUser(false);setAdmin(
 
 return (
   <>
-    <header><nav><span className="portal-brand"><img src="/logo_horizontal_fundo_branco.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica" style={{display:"block",width:"min(340px,72vw)",height:"auto",maxHeight:78,objectFit:"contain",objectPosition:"left center"}}/></span>{user&&<button onClick={logout}>Sair</button>}</nav></header>
+    <header><nav><span className="portal-brand"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica" style={{display:"block",width:"min(340px,72vw)",height:"auto",maxHeight:78,objectFit:"contain",objectPosition:"left center"}}/></span>{user&&<button onClick={logout}>Sair</button>}</nav></header>
     <main style={!user&&!recuperacao?{marginTop:8}:undefined}>
       {erro&&<p role="alert" className="error">{erro}</p>}
       {sucesso&&<p role="status" className="success">{sucesso}</p>}
