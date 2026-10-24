@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {supabase} from '../../lib/supabase';
+import {useClienteAtivo} from '../use-cliente-ativo';
 
 type Item={id:string;nome:string};
 type Fator={codigo:string;grupo:string;titulo:string;sugestao:string};
@@ -28,11 +29,11 @@ const fatores:Fator[]=[
 const grupos=['Posturas','Esforços e cargas','Movimentos e acionamentos','Contato e vibração','Entrada de dados','Avaliação geral'];
 const inicial=():Resposta=>({situacao:'',descricao:'',observacoes:'',comentario:'',plano:''});
 export default function ColetaBiomecanica(){
+ const {clienteAtivo}=useClienteAtivo();
  const [clientes,setClientes]=useState<{id:string;razao_social:string}[]>([]);
  const [cliente,setCliente]=useState(''),[plantas,setPlantas]=useState<Item[]>([]),[planta,setPlanta]=useState(''),[instalacoes,setInstalacoes]=useState<Item[]>([]),[instalacao,setInstalacao]=useState(''),[postos,setPostos]=useState<Item[]>([]),[posto,setPosto]=useState(''),[estacoes,setEstacoes]=useState<Item[]>([]),[estacao,setEstacao]=useState('');
  const [nivel,setNivel]=useState<'posto'|'estacao'>('posto'),[grupo,setGrupo]=useState('Posturas'),[respostas,setRespostas]=useState<Record<string,Resposta>>({}),[geral,setGeral]=useState({observacoes:'',comentario:'',plano:''});
  const [erro,setErro]=useState('');
- const [empresaAtiva,setEmpresaAtiva]=useState(false);
  useEffect(()=>{
   let ativo=true;
   (async()=>{
@@ -51,12 +52,12 @@ export default function ColetaBiomecanica(){
     if(!ativo)return;
     const disponiveis=data||[];
     setClientes(disponiveis);
-    const salva=window.localStorage.getItem('portal-nr17:empresa-ativa:'+user.id+':'+consultoriaId);
-    if(salva&&disponiveis.some(c=>c.id===salva)){setCliente(salva);setEmpresaAtiva(true)}
+
    }catch(e){if(ativo)setErro(e instanceof Error?e.message:'Não foi possível carregar as empresas.')}
   })();
   return()=>{ativo=false};
  },[]);
+ useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setRespostas({});setGeral({observacoes:'',comentario:'',plano:''});setErro('')}},[clienteAtivo,clientes,cliente]);
  useEffect(()=>{setPlanta('');setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
@@ -65,12 +66,13 @@ export default function ColetaBiomecanica(){
  function sugerir(f:Fator){alterar(f.codigo,'descricao',f.sugestao)}
  const campo=(rotulo:string,valor:string,onChange:(v:string)=>void,lista:Item[],bloqueado=false)=><label style={{display:'grid',gap:5,fontSize:13,minWidth:0,fontWeight:600}}>{rotulo}<select title={lista.find(x=>x.id===valor)?.nome||rotulo} style={{width:'100%',minWidth:0,maxWidth:'100%',height:40,fontWeight:400,textOverflow:'ellipsis'}} value={valor} disabled={bloqueado} onChange={e=>onChange(e.target.value)}><option value="">Selecione</option>{lista.map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select></label>;
  const selecionado=nivel==='posto'?posto:estacao;
- return <><header><nav><strong>Portal NR-17 — Coleta Biomecânica</strong></nav></header><main><section style={{maxWidth:1120}}><p><Link href="/">← Voltar ao painel</Link></p><h1>Coleta de Dados Biomecânicos</h1><p style={{fontSize:13}}>Formulário de desenvolvimento. As informações desta tela ainda não são gravadas no banco de dados.</p>{erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
+ return <div className="ergobax-gestao-page"><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Coleta Biomecânica</strong></span></nav></header><main><section style={{maxWidth:1120}}><p><Link href="/">← Voltar ao painel</Link></p><h1>Coleta de Dados Biomecânicos</h1><p style={{fontSize:13}}>Formulário de desenvolvimento. As informações desta tela ainda não são gravadas no banco de dados.</p>
+ <div style={{background:"#eef7f4",border:"1px solid #b9d8cb",borderLeft:"4px solid #239b65",padding:"14px 18px",borderRadius:8,margin:"16px 0 22px",overflowWrap:"anywhere"}}><div style={{fontSize:13,color:"#315e54",fontWeight:700,marginBottom:5}}>EMPRESA EM ANÁLISE</div><div style={{fontSize:"clamp(16px,2vw,20px)",fontWeight:700,color:"#102c4a"}}>{clientes.find(c=>c.id===cliente)?.razao_social||"Nenhuma empresa selecionada"}</div></div>{erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
  <div style={{display:'grid',gridTemplateColumns:'repeat(12,minmax(0,1fr))',gap:'12px 14px',alignItems:'end'}}>
- <div style={{gridColumn:'span 8',minWidth:0}}><label style={{display:'grid',gap:5,fontSize:13,fontWeight:600}}>Cliente<select title={clientes.find(x=>x.id===cliente)?.razao_social||'Cliente'} style={{width:'100%',minWidth:0,height:40,fontWeight:400,textOverflow:'ellipsis'}} value={cliente} disabled={empresaAtiva} onChange={e=>setCliente(e.target.value)}><option value="">Selecione</option>{clientes.map(x=><option key={x.id} value={x.id}>{x.razao_social}</option>)}</select></label></div>
+
  <div style={{gridColumn:'span 4',minWidth:0}}><label style={{display:'grid',gap:5,fontSize:13,fontWeight:600}}>Vincular a<select style={{width:'100%',minWidth:0,height:40,fontWeight:400}} value={nivel} onChange={e=>setNivel(e.target.value as 'posto'|'estacao')}><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option></select></label></div>
  </div>
- {empresaAtiva&&<p style={{fontSize:12,color:'#53657a',margin:'8px 0'}}>Empresa herdada do Painel da Consultoria. Para alterar, volte ao painel e selecione outra empresa.</p>}
+ 
  <div className="biomecanica-seletores" style={{display:'grid',gridTemplateColumns:'repeat(4,minmax(0,1fr))',gap:'12px 14px',marginTop:12}}>
  {campo('Planta',planta,setPlanta,plantas,!cliente)}{campo('Instalação',instalacao,setInstalacao,instalacoes,!planta)}{campo('Posto',posto,setPosto,postos,!instalacao)}{nivel==='estacao'&&campo('Estação',estacao,setEstacao,estacoes,!posto)}
  </div>
@@ -79,5 +81,5 @@ export default function ColetaBiomecanica(){
  <div style={{display:'flex',gap:7,flexWrap:'wrap',margin:'16px 0'}}>{grupos.map(g=><button type="button" key={g} aria-pressed={grupo===g} onClick={()=>setGrupo(g)} style={{padding:'7px 10px',fontWeight:grupo===g?700:400}}>{g}</button>)}</div>
  {grupo==='Avaliação geral'?<div style={{display:'grid',gap:12}}>{([['observacoes','Observações gerais'],['comentario','Comentário técnico geral'],['plano','Plano de ação geral']] as const).map(([k,t])=><label key={k} style={{display:'grid',gap:5}}>{t}<textarea rows={3} value={geral[k]} onChange={e=>setGeral(p=>({...p,[k]:e.target.value}))}/></label>)}</div>:<div style={{border:'1px solid #d5dfeb',borderRadius:10,overflow:'hidden'}}>{fatores.filter(f=>f.grupo===grupo).map(f=>{const r=respostas[f.codigo]||inicial();return <div key={f.codigo} style={{padding:12,borderBottom:'1px solid #e3e9f0',display:'grid',gap:8}}><div style={{display:'flex',gap:12,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}><strong style={{fontSize:13}}>{f.codigo} — {f.titulo}</strong><select aria-label={'Situação: '+f.titulo} value={r.situacao} onChange={e=>alterar(f.codigo,'situacao',e.target.value)}><option value="">Não avaliado</option><option value="sim">Situação identificada</option><option value="nao">Não identificada</option><option value="na">Não se aplica</option></select></div><label style={{display:'grid',gap:4,fontSize:12}}>Descrição técnica editável<textarea rows={2} value={r.descricao} onChange={e=>alterar(f.codigo,'descricao',e.target.value)} placeholder="Descreva a condição observada..."/></label><div><button type="button" onClick={()=>sugerir(f)} style={{fontSize:12}}>Usar texto sugerido</button><span style={{fontSize:11,marginLeft:8,color:'#53657a'}}>Confira se o texto corresponde à situação real.</span></div><details><summary style={{cursor:'pointer',fontSize:12}}>Observações, comentário técnico e plano de ação</summary><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:10,marginTop:8}}>{([['observacoes','Observações'],['comentario','Comentário técnico'],['plano','Plano de ação']] as const).map(([k,t])=><label key={k} style={{display:'grid',gap:4,fontSize:12}}>{t}<textarea rows={2} value={r[k]} onChange={e=>alterar(f.codigo,k,e.target.value)}/></label>)}</div></details></div>})}</div>}
  <p style={{fontSize:12,color:'#53657a'}}>Protótipo sem salvamento. A avaliação técnica e a caracterização da exposição dependem da análise da profissional responsável.</p>
- </section></main></>
+ </section></main></div>
 }
