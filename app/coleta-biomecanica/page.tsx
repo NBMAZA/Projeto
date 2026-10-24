@@ -6,6 +6,7 @@ import {useClienteAtivo} from '../use-cliente-ativo';
 
 type Item={id:string;nome:string};
 type Fator={codigo:string;grupo:string;titulo:string;sugestao:string};
+type Avaliacao={id:string;titulo:string;nivel:'posto'|'estacao';estrutura_id:string;planta_id:string|null;instalacao_id:string|null;posto_id:string|null;estacao_id:string|null;respostas:Record<string,Resposta>;avaliacao_geral:{observacoes:string;comentario:string;plano:string};situacao:string;created_at:string};
 type Resposta={situacao:string;descricao:string;observacoes:string;comentario:string;plano:string};
 const fatores:Fator[]=[
 {codigo:'B01',grupo:'Posturas',titulo:'Postura predominante',sugestao:'Atividade realizada predominantemente 50% em pé e 50% sentada, com liberdade para pausas quando necessário.'},
@@ -34,6 +35,7 @@ export default function ColetaBiomecanica(){
  const [cliente,setCliente]=useState(''),[plantas,setPlantas]=useState<Item[]>([]),[planta,setPlanta]=useState(''),[instalacoes,setInstalacoes]=useState<Item[]>([]),[instalacao,setInstalacao]=useState(''),[postos,setPostos]=useState<Item[]>([]),[posto,setPosto]=useState(''),[estacoes,setEstacoes]=useState<Item[]>([]),[estacao,setEstacao]=useState('');
  const [nivel,setNivel]=useState<'posto'|'estacao'>('posto'),[grupo,setGrupo]=useState('Posturas'),[respostas,setRespostas]=useState<Record<string,Resposta>>({}),[geral,setGeral]=useState({observacoes:'',comentario:'',plano:''});
  const [erro,setErro]=useState('');
+ const [consultoriaId,setConsultoriaId]=useState(''),[titulo,setTitulo]=useState(''),[editandoId,setEditandoId]=useState<string|null>(null),[situacao,setSituacao]=useState('rascunho'),[tela,setTela]=useState<'lista'|'formulario'>('lista'),[avaliacoes,setAvaliacoes]=useState<Avaliacao[]>([]),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
  useEffect(()=>{
   let ativo=true;
   (async()=>{
@@ -47,6 +49,7 @@ export default function ColetaBiomecanica(){
     if(!ativo)return;
     const consultoriaId=links?.[0]?.consultoria_id;
     if(!consultoriaId)return;
+    setConsultoriaId(consultoriaId);
     const {data,error}=await db.from('clientes').select('id,razao_social').eq('consultoria_id',consultoriaId).order('razao_social');
     if(error)throw error;
     if(!ativo)return;
@@ -57,17 +60,46 @@ export default function ColetaBiomecanica(){
   })();
   return()=>{ativo=false};
  },[]);
- useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setRespostas({});setGeral({observacoes:'',comentario:'',plano:''});setErro('')}},[clienteAtivo,clientes,cliente]);
- useEffect(()=>{setPlanta('');setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
- useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
- useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
- useEffect(()=>{setEstacao('');setEstacoes([]);if(posto)supabase().from('estacoes_trabalho').select('id,nome').eq('posto_id',posto).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setEstacoes(data||[])})},[posto]);
+ useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setRespostas({});setGeral({observacoes:'',comentario:'',plano:''});setTela('lista');setEditandoId(null);setErro('')}},[clienteAtivo,clientes,cliente]);
+ useEffect(()=>{setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
+ useEffect(()=>{setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
+ useEffect(()=>{setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
+ useEffect(()=>{setEstacoes([]);if(posto)supabase().from('estacoes_trabalho').select('id,nome').eq('posto_id',posto).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setEstacoes(data||[])})},[posto]);
  function alterar(codigo:string,campo:keyof Resposta,valor:string){setRespostas(prev=>({...prev,[codigo]:{...(prev[codigo]||inicial()),[campo]:valor}}))}
  function sugerir(f:Fator){alterar(f.codigo,'descricao',f.sugestao)}
  const campo=(rotulo:string,valor:string,onChange:(v:string)=>void,lista:Item[],bloqueado=false)=><label style={{display:'grid',gap:5,fontSize:13,minWidth:0,fontWeight:600}}>{rotulo}<select title={lista.find(x=>x.id===valor)?.nome||rotulo} style={{width:'100%',minWidth:0,maxWidth:'100%',height:40,fontWeight:400,textOverflow:'ellipsis'}} value={valor} disabled={bloqueado} onChange={e=>onChange(e.target.value)}><option value="">Selecione</option>{lista.map(x=><option key={x.id} value={x.id}>{x.nome}</option>)}</select></label>;
+
+ async function carregarAvaliacoes(){
+  if(!cliente)return;
+  const {data,error}=await supabase().from('avaliacoes_biomecanicas').select('id,titulo,nivel,estrutura_id,planta_id,instalacao_id,posto_id,estacao_id,respostas,avaliacao_geral,situacao,created_at').eq('cliente_id',cliente).order('created_at',{ascending:false});
+  if(error)setErro(error.message);else setAvaliacoes((data||[]) as Avaliacao[]);
+ }
+ useEffect(()=>{if(cliente)void carregarAvaliacoes();else setAvaliacoes([])},[cliente]);
+ function nova(){
+  setEditandoId(null);setTitulo('');setNivel('posto');setPlanta('');setInstalacao('');setPosto('');setEstacao('');setRespostas({});setGeral({observacoes:'',comentario:'',plano:''});setSituacao('rascunho');setGrupo('Posturas');setMensagem('');setErro('');setTela('formulario');
+ }
+ function editar(a:Avaliacao){
+  setEditandoId(a.id);setTitulo(a.titulo);setNivel(a.nivel);setPlanta(a.planta_id||'');setInstalacao(a.instalacao_id||'');setPosto(a.posto_id||'');setEstacao(a.estacao_id||'');setRespostas(a.respostas||{});setGeral(a.avaliacao_geral||{observacoes:'',comentario:'',plano:''});setSituacao(a.situacao);setGrupo('Posturas');setMensagem('');setErro('');setTela('formulario');
+ }
+ async function salvar(novaSituacao?:string){
+  const estrutura=nivel==='posto'?posto:estacao;
+  if(!cliente||!consultoriaId||!estrutura||!titulo.trim()){setErro('Informe o título e selecione o posto ou estação.');return}
+  setSalvando(true);setErro('');
+  try{
+   const db=supabase();const {data:{user}}=await db.auth.getUser();if(!user)throw new Error('Sessão expirada.');
+   const payload={consultoria_id:consultoriaId,cliente_id:cliente,titulo:titulo.trim(),nivel,estrutura_id:estrutura,planta_id:planta||null,instalacao_id:instalacao||null,posto_id:posto||null,estacao_id:nivel==='estacao'?estacao||null:null,respostas,avaliacao_geral:geral,situacao:novaSituacao||situacao,updated_at:new Date().toISOString()};
+   const result=editandoId?await db.from('avaliacoes_biomecanicas').update(payload).eq('id',editandoId).eq('cliente_id',cliente).select('id').single():await db.from('avaliacoes_biomecanicas').insert({...payload,criado_por:user.id}).select('id').single();
+   if(result.error)throw result.error;
+   setEditandoId(result.data.id);setSituacao(payload.situacao);setMensagem('Avaliação salva com sucesso.');await carregarAvaliacoes();
+  }catch(e){setErro(e instanceof Error?e.message:'Erro ao salvar avaliação.')}finally{setSalvando(false)}
+ }
  const selecionado=nivel==='posto'?posto:estacao;
- return <div className="ergobax-gestao-page"><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Coleta Biomecânica</strong></span></nav></header><main><section style={{maxWidth:1120}}><p><Link href="/">← Voltar ao painel</Link></p><h1>Coleta de Dados Biomecânicos</h1><p style={{fontSize:13}}>Formulário de desenvolvimento. As informações desta tela ainda não são gravadas no banco de dados.</p>
+ return <div className="ergobax-gestao-page"><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Coleta Biomecânica</strong></span></nav></header><main><section style={{maxWidth:1120}}><p><Link href="/">← Voltar ao painel</Link></p><h1>Coleta de Dados Biomecânicos</h1><p style={{fontSize:13}}>Formulário de desenvolvimento. As avaliações são armazenadas no Supabase.</p>
  <div style={{background:"#eef7f4",border:"1px solid #b9d8cb",borderLeft:"4px solid #239b65",padding:"14px 18px",borderRadius:8,margin:"16px 0 22px",overflowWrap:"anywhere"}}><div style={{fontSize:13,color:"#315e54",fontWeight:700,marginBottom:5}}>EMPRESA EM ANÁLISE</div><div style={{fontSize:"clamp(16px,2vw,20px)",fontWeight:700,color:"#102c4a"}}>{clientes.find(c=>c.id===cliente)?.razao_social||"Nenhuma empresa selecionada"}</div></div>{erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
+<div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap',margin:'16px 0'}}><strong>{tela==='lista'?'Avaliações biomecânicas':'Cadastro de avaliação'}</strong>{tela==='lista'?<button type="button" onClick={nova}>Nova avaliação</button>:<div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" onClick={()=>{setTela('lista');void carregarAvaliacoes()}}>Voltar à lista</button><button type="button" disabled={salvando||situacao==='concluida'} onClick={()=>void salvar()}>{salvando?'Salvando...':'Salvar avaliação'}</button><button type="button" disabled={salvando||situacao==='concluida'} onClick={()=>void salvar('concluida')}>Concluir avaliação</button>{situacao==='concluida'&&<button type="button" disabled={salvando} onClick={()=>void salvar('reaberta')}>Reabrir avaliação</button>}</div>}</div>
+ {mensagem&&<p role="status" style={{color:'#176b46'}}>{mensagem}</p>}
+ {tela==='lista'?<div style={{display:'grid',gap:10}}>{avaliacoes.length===0?<p>Nenhuma avaliação cadastrada para esta empresa.</p>:avaliacoes.map(a=><article key={a.id} style={{border:'1px solid #d5dfeb',borderRadius:8,padding:14,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><strong>{a.titulo}</strong><div style={{fontSize:12,color:'#53657a'}}>{a.nivel==='posto'?'Posto':'Estação'} · {a.situacao} · {new Date(a.created_at).toLocaleDateString('pt-BR')}</div></div><button type="button" onClick={()=>editar(a)}>{a.situacao==='concluida'?'Consultar / Reabrir':'Editar'}</button></article>)}</div>:<>
+ <label style={{display:'grid',gap:5,margin:'12px 0',maxWidth:650,fontWeight:600}}>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} disabled={situacao==='concluida'} placeholder="Ex.: Avaliação biomecânica do posto administrativo"/></label>
  <div style={{display:'grid',gridTemplateColumns:'repeat(12,minmax(0,1fr))',gap:'12px 14px',alignItems:'end'}}>
 
  <div style={{gridColumn:'span 4',minWidth:0}}><label style={{display:'grid',gap:5,fontSize:13,fontWeight:600}}>Vincular a<select style={{width:'100%',minWidth:0,height:40,fontWeight:400}} value={nivel} onChange={e=>setNivel(e.target.value as 'posto'|'estacao')}><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option></select></label></div>
@@ -77,9 +109,9 @@ export default function ColetaBiomecanica(){
  {campo('Planta',planta,setPlanta,plantas,!cliente)}{campo('Instalação',instalacao,setInstalacao,instalacoes,!planta)}{campo('Posto',posto,setPosto,postos,!instalacao)}{nivel==='estacao'&&campo('Estação',estacao,setEstacao,estacoes,!posto)}
  </div>
  <style>{`@media(max-width:720px){.biomecanica-seletores{grid-template-columns:repeat(2,minmax(0,1fr))!important}}@media(max-width:460px){.biomecanica-seletores{grid-template-columns:minmax(0,1fr)!important}}`}</style>
- <p style={{fontSize:12,color:'#53657a'}}>{selecionado?'Vínculo selecionado.':'Selecione um posto ou estação para identificar o local da coleta.'} O preenchimento é demonstrativo até a integração da persistência.</p>
+ <p style={{fontSize:12,color:'#53657a'}}>{selecionado?'Vínculo selecionado.':'Selecione um posto ou estação para identificar o local da coleta.'} Os dados preenchidos são gravados ao clicar em Salvar avaliação.</p>
  <div style={{display:'flex',gap:7,flexWrap:'wrap',margin:'16px 0'}}>{grupos.map(g=><button type="button" key={g} aria-pressed={grupo===g} onClick={()=>setGrupo(g)} style={{padding:'7px 10px',fontWeight:grupo===g?700:400}}>{g}</button>)}</div>
  {grupo==='Avaliação geral'?<div style={{display:'grid',gap:12}}>{([['observacoes','Observações gerais'],['comentario','Comentário técnico geral'],['plano','Plano de ação geral']] as const).map(([k,t])=><label key={k} style={{display:'grid',gap:5}}>{t}<textarea rows={3} value={geral[k]} onChange={e=>setGeral(p=>({...p,[k]:e.target.value}))}/></label>)}</div>:<div style={{border:'1px solid #d5dfeb',borderRadius:10,overflow:'hidden'}}>{fatores.filter(f=>f.grupo===grupo).map(f=>{const r=respostas[f.codigo]||inicial();return <div key={f.codigo} style={{padding:12,borderBottom:'1px solid #e3e9f0',display:'grid',gap:8}}><div style={{display:'flex',gap:12,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}><strong style={{fontSize:13}}>{f.codigo} — {f.titulo}</strong><select aria-label={'Situação: '+f.titulo} value={r.situacao} onChange={e=>alterar(f.codigo,'situacao',e.target.value)}><option value="">Não avaliado</option><option value="sim">Situação identificada</option><option value="nao">Não identificada</option><option value="na">Não se aplica</option></select></div><label style={{display:'grid',gap:4,fontSize:12}}>Descrição técnica editável<textarea rows={2} value={r.descricao} onChange={e=>alterar(f.codigo,'descricao',e.target.value)} placeholder="Descreva a condição observada..."/></label><div><button type="button" onClick={()=>sugerir(f)} style={{fontSize:12}}>Usar texto sugerido</button><span style={{fontSize:11,marginLeft:8,color:'#53657a'}}>Confira se o texto corresponde à situação real.</span></div><details><summary style={{cursor:'pointer',fontSize:12}}>Observações, comentário técnico e plano de ação</summary><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(210px,1fr))',gap:10,marginTop:8}}>{([['observacoes','Observações'],['comentario','Comentário técnico'],['plano','Plano de ação']] as const).map(([k,t])=><label key={k} style={{display:'grid',gap:4,fontSize:12}}>{t}<textarea rows={2} value={r[k]} onChange={e=>alterar(f.codigo,k,e.target.value)}/></label>)}</div></details></div>})}</div>}
- <p style={{fontSize:12,color:'#53657a'}}>Protótipo sem salvamento. A avaliação técnica e a caracterização da exposição dependem da análise da profissional responsável.</p>
- </section></main></div>
+ <p style={{fontSize:12,color:'#53657a'}}>A avaliação técnica e a caracterização da exposição dependem da análise da profissional responsável.</p>
+ </> </section></main></div>
 }
