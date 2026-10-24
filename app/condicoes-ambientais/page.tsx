@@ -208,6 +208,7 @@ export default function CondicoesAmbientais(){
  return <div className="ergobax-gestao-page"><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Condições Ambientais</strong></span></nav></header><main><section style={{maxWidth:1100}}>
  <p><Link href="/">← Voltar ao painel</Link></p><h1>Condições Ambientais</h1>
  <p style={{color:'#53657a'}}>Avaliações ambientais da Empresa Ativa. Consulte os registros ou inicie uma nova coleta.</p>
+ <div style={{background:"#eef7f4",border:"1px solid #b9d8cb",borderLeft:"4px solid #239b65",padding:"14px 18px",borderRadius:8,margin:"16px 0 22px",overflowWrap:"anywhere"}}><div style={{fontSize:13,color:"#315e54",fontWeight:700,marginBottom:5}}>EMPRESA EM ANÁLISE</div><div style={{fontSize:"clamp(16px,2vw,20px)",fontWeight:700,color:"#102c4a",lineHeight:1.45}}>{clientes.find(c=>c.id===cliente)?.razao_social||"Nenhuma empresa selecionada"}</div></div>
  {erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
  {mensagem&&<p role="status" style={{color:'#166534'}}>{mensagem}</p>}
  {tela==='lista'?<div>
@@ -226,7 +227,7 @@ export default function CondicoesAmbientais(){
  <div className="ambiental-grid">
  <label>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ex.: Avaliação ambiental do escritório"/></label>
  <label>Data da coleta<input type="date" value={data} onChange={e=>setData(e.target.value)}/></label>
- <div><strong>Empresa em análise:</strong> {clientes.find(c=>c.id===cliente)?.razao_social||"Selecione uma empresa no Painel da Consultoria"}</div>
+ 
  <label>Vincular a<select value={nivel} disabled={!!editandoId} onChange={e=>setNivel(e.target.value as Nivel)}>{([['cliente','Cliente'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto de trabalho'],['estacao','Estação de trabalho']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
  {editandoId&&nivel!=='cliente'&&<p style={{fontSize:12,color:'#53657a'}}>Vínculo organizacional preservado nesta edição (ID: {estruturaOriginal}).</p>}
  {!editandoId&&nivel!=='cliente'&&selecao('Planta',planta,setPlanta,plantas,!cliente)}
