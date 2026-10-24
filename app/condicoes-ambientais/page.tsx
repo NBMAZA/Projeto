@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
 import {supabase} from '../../lib/supabase';
+import {useClienteAtivo} from '../use-cliente-ativo';
 type Item={id:string;nome:string};
 type Nivel='cliente'|'planta'|'instalacao'|'posto'|'estacao';
 type Medicao={id:string;tipo:'ruido'|'iluminacao_pontual'|'iluminacao_media'|'temperatura';resultado:string;observacoes:string};
@@ -10,6 +11,7 @@ const tipos={ruido:'Ruído — dB(A)',iluminacao_pontual:'Iluminação pontual �
 const novaMedicao=():Medicao=>({id:crypto.randomUUID(),tipo:'ruido',resultado:'',observacoes:''});
 const novoPonto=():Ponto=>({id:crypto.randomUUID(),nome:'',localizacao:'',observacoes:'',medicoes:[novaMedicao()]});
 export default function CondicoesAmbientais(){
+ const {clienteAtivo}=useClienteAtivo();
  const [clientes,setClientes]=useState<{id:string;razao_social:string}[]>([]);
  const [cliente,setCliente]=useState(''),[planta,setPlanta]=useState(''),[instalacao,setInstalacao]=useState(''),[posto,setPosto]=useState(''),[estacao,setEstacao]=useState('');
  const [plantas,setPlantas]=useState<Item[]>([]),[instalacoes,setInstalacoes]=useState<Item[]>([]),[postos,setPostos]=useState<Item[]>([]),[estacoes,setEstacoes]=useState<Item[]>([]);
@@ -45,19 +47,12 @@ export default function CondicoesAmbientais(){
     if(!ativo)return;
     const disponiveis=data||[];
     setClientes(disponiveis);
-    const chave='portal-nr17:empresa-ativa:'+user.id+':'+consultoriaId;
-    const informado=new URLSearchParams(window.location.search).get('cliente')||'';
-    const salva=window.localStorage.getItem(chave)||'';
-    const escolhido=informado||salva;
-    if(escolhido&&disponiveis.some(c=>c.id===escolhido)){
-      setCliente(escolhido);setEmpresaAtiva(true);
-      window.localStorage.setItem(chave,escolhido);
-    }else if(informado){setErro('A empresa informada não está disponível para este usuário. Selecione uma empresa autorizada no painel.')}
-    else if(salva){window.localStorage.removeItem(chave)}
+
    }catch(e){if(ativo)setErro(e instanceof Error?e.message:'Não foi possível carregar as empresas.')}
   })();
   return()=>{ativo=false};
  },[]);
+ useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setEmpresaAtiva(!!valido);setTela('lista');setEditandoId(null);setMensagem('');setErro('')}},[clienteAtivo,clientes,cliente]);
  useEffect(()=>{setPlanta('');setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
@@ -210,7 +205,7 @@ export default function CondicoesAmbientais(){
  const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label>{nome}<select value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
  const mudarPonto=(id:string,campo:'nome'|'localizacao'|'observacoes',valor:string)=>setPontos(ps=>ps.map(p=>p.id===id?{...p,[campo]:valor}:p));
  const mudarMedicao=(pid:string,mid:string,campo:keyof Omit<Medicao,'id'>,valor:string)=>setPontos(ps=>ps.map(p=>p.id===pid?{...p,medicoes:p.medicoes.map(m=>m.id===mid?{...m,[campo]:valor}:m)}:p));
- return <><header><nav><strong>Portal NR-17 — Condições Ambientais</strong></nav></header><main><section style={{maxWidth:1100}}>
+ return <div className="ergobax-gestao-page"><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Condições Ambientais</strong></span></nav></header><main><section style={{maxWidth:1100}}>
  <p><Link href="/">← Voltar ao painel</Link></p><h1>Condições Ambientais</h1>
  <p style={{color:'#53657a'}}>Avaliações ambientais da Empresa Ativa. Consulte os registros ou inicie uma nova coleta.</p>
  {erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
@@ -231,7 +226,7 @@ export default function CondicoesAmbientais(){
  <div className="ambiental-grid">
  <label>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ex.: Avaliação ambiental do escritório"/></label>
  <label>Data da coleta<input type="date" value={data} onChange={e=>setData(e.target.value)}/></label>
- <label>Cliente<select value={cliente} disabled={empresaAtiva} onChange={e=>setCliente(e.target.value)}><option value="">Selecione</option>{clientes.map(c=><option key={c.id} value={c.id}>{c.razao_social}</option>)}</select></label>
+ <div><strong>Empresa em análise:</strong> {clientes.find(c=>c.id===cliente)?.razao_social||"Selecione uma empresa no Painel da Consultoria"}</div>
  <label>Vincular a<select value={nivel} disabled={!!editandoId} onChange={e=>setNivel(e.target.value as Nivel)}>{([['cliente','Cliente'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto de trabalho'],['estacao','Estação de trabalho']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
  {editandoId&&nivel!=='cliente'&&<p style={{fontSize:12,color:'#53657a'}}>Vínculo organizacional preservado nesta edição (ID: {estruturaOriginal}).</p>}
  {!editandoId&&nivel!=='cliente'&&selecao('Planta',planta,setPlanta,plantas,!cliente)}
@@ -290,5 +285,5 @@ export default function CondicoesAmbientais(){
  <p style={{fontSize:13,color:'#53657a'}}>Os critérios de referência são informativos, definidos por tipo de medição nesta avaliação, e não classificam riscos automaticamente. O vínculo organizacional de uma avaliação existente não pode ser alterado nesta versão. Microfone e associação aos riscos serão integrados nas próximas etapas.</p>
  </>}
  <style>{`.ambiental-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.ambiental-grid label,section>label,article>label{display:grid;gap:5px;margin-bottom:12px}input,select,textarea{max-width:100%;width:100%;box-sizing:border-box}`}</style>
- </section></main></>;
+ </section></main></div>;
 }
