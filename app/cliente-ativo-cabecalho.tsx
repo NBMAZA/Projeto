@@ -8,7 +8,7 @@ type Cliente={id:string;razao_social:string;status:string|null};
 const chave=(usuario:string,consultoria:string)=>'portal-nr17:empresa-ativa:'+usuario+':'+consultoria;
 export default function ClienteAtivoCabecalho(){
  const pathname=usePathname();
- const ocultarSeletor=pathname==='/plantas'||pathname==='/instalacoes'||pathname==='/postos'||pathname==='/estacoes';
+ const ocultarSeletor=pathname==='/plantas'||pathname==='/instalacoes'||pathname==='/postos'||pathname==='/estacoes'||pathname==='/cargos';
  const [contexto,setContexto]=useState<{usuario:string;consultoria:string}|null>(null);
  const [clientes,setClientes]=useState<Cliente[]>([]);
  const [selecionado,setSelecionado]=useState('');
