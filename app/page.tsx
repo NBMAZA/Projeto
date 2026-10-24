@@ -53,22 +53,22 @@ return (
           <nav id="conteudo-publico" aria-label="Informações sobre a ERGOBAX" style={{display:'flex',flexWrap:'wrap',gap:8,padding:'6px 8px 0',borderBottom:'1px solid #d9e2ef'}}>
             {([{id:'inicio',titulo:'Início'},{id:'funcionalidades',titulo:'Funcionalidades'},{id:'planos',titulo:'Planos'},{id:'newbax',titulo:'Newbax'},{id:'contato',titulo:'Contato'}] as const).map(aba=><button key={aba.id} type="button" aria-current={abaPublica===aba.id?'page':undefined} onClick={()=>setAbaPublica(aba.id)} style={{borderRadius:'10px 10px 0 0',padding:'12px 18px',border:'1px solid #d9e2ef',borderBottom:abaPublica===aba.id?'3px solid #17a776':'1px solid #d9e2ef',background:abaPublica===aba.id?'#e8f8f1':'#fff',color:'#102d49',fontWeight:abaPublica===aba.id?800:500,cursor:'pointer'}}>{aba.titulo}</button>)}
           </nav>
-          {abaPublica==='inicio'&&          <section style={{background:'linear-gradient(90deg,rgba(7,32,56,.97) 0%,rgba(7,32,56,.88) 43%,rgba(7,32,56,.42) 72%),url(/ergobax_profissional_coleta_banner.jpg) center 42% / cover no-repeat,#102d49',color:'#fff',borderRadius:18,padding:'clamp(22px,4vw,48px)',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,320px),1fr))',gap:32,alignItems:'center',minHeight:390}}>
+          {abaPublica==='inicio'&&          <section style={{background:'linear-gradient(90deg,rgba(7,32,56,.97) 0%,rgba(7,32,56,.88) 43%,rgba(7,32,56,.42) 72%),url(/ergobax_profissional_coleta_banner.jpg) center 42% / cover no-repeat,#102d49',color:'#fff',borderRadius:18,padding:'clamp(16px,2.4vw,28px)',display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,320px),1fr))',gap:22,alignItems:'center',minHeight:310}}>
             <div>
               <p style={{color:'#53d5ad',fontWeight:700,letterSpacing:1,fontSize:12}}>PLATAFORMA DE INTELIGÊNCIA ERGONÔMICA</p>
-              <h1 style={{fontSize:'clamp(30px,4vw,46px)',lineHeight:1.13,margin:'14px 0',color:'#fff'}}>Da coleta em campo à inteligência ergonômica.</h1>
-              <p style={{color:'#d1e1ee',fontSize:17,lineHeight:1.7}}>Gestão de consultorias, clientes, avaliações ergonômicas e documentação técnica em um único ambiente.</p>
-              <a href="#conteudo-publico" onClick={()=>setAbaPublica("funcionalidades")} style={{display:'inline-block',marginTop:14,padding:'12px 20px',borderRadius:9,background:'#45c9a1',color:'#102d49',fontWeight:700,textDecoration:'none'}}>Conheça a plataforma</a>
+              <h1 style={{fontSize:'clamp(27px,3.2vw,38px)',lineHeight:1.12,margin:'9px 0',color:'#fff'}}>Da coleta em campo à inteligência ergonômica.</h1>
+              <p style={{color:'#d1e1ee',fontSize:15,lineHeight:1.45}}>Gestão de consultorias, clientes, avaliações ergonômicas e documentação técnica em um único ambiente.</p>
+              <a href="#conteudo-publico" onClick={()=>setAbaPublica("funcionalidades")} style={{display:'inline-block',marginTop:8,padding:'9px 16px',borderRadius:9,background:'#45c9a1',color:'#102d49',fontWeight:700,textDecoration:'none'}}>Conheça a plataforma</a>
             </div>
-            <div id="acesso" style={{background:'#fff',color:'#102d49',padding:26,borderRadius:14,boxShadow:'0 14px 40px #071b3080'}}>
-              <h2 style={{margin:'0 0 8px',color:'#102d49'}}>Portal da Consultoria</h2>
-              <p style={{color:'#526984',marginBottom:18}}>Entre com suas credenciais cadastradas.</p>
-              <form onSubmit={login} style={{display:'grid',gap:10}}>
-                <label htmlFor="ergobax-email">E-mail</label><input id="ergobax-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/>
-                <label htmlFor="ergobax-senha">Senha</label><input id="ergobax-senha" type="password" autoComplete="current-password" required value={senha} onChange={e=>setSenha(e.target.value)}/>
-                <button disabled={busy} type="submit" style={{background:'#167e72',color:'#fff',padding:12,fontWeight:700}}>{busy?'Entrando...':'Entrar no Portal'}</button>
+            <div id="acesso" style={{background:'#fff',color:'#102d49',padding:18,borderRadius:14,boxShadow:'0 14px 40px #071b3080'}}>
+              <h2 style={{margin:'0 0 5px',color:'#102d49',fontSize:23}}>Portal da Consultoria</h2>
+              <p style={{color:'#526984',margin:'0 0 10px',fontSize:14}}>Entre com suas credenciais cadastradas.</p>
+              <form onSubmit={login} style={{display:'grid',gap:6}}>
+                <label htmlFor="ergobax-email" style={{margin:'4px 0 0',fontSize:14}}>E-mail</label><input style={{padding:'9px 11px'}} id="ergobax-email" type="email" autoComplete="username" required value={email} onChange={e=>setEmail(e.target.value)}/>
+                <label htmlFor="ergobax-senha" style={{margin:'4px 0 0',fontSize:14}}>Senha</label><input style={{padding:'9px 11px'}} id="ergobax-senha" type="password" autoComplete="current-password" required value={senha} onChange={e=>setSenha(e.target.value)}/>
+                <button disabled={busy} type="submit" style={{background:'#167e72',color:'#fff',padding:10,fontWeight:700}}>{busy?'Entrando...':'Entrar no Portal'}</button>
               </form>
-              <p style={{fontSize:12,color:'#64748b',marginTop:14}}>Acesso restrito a usuários autorizados.</p>
+              <p style={{fontSize:11,color:'#64748b',margin:'8px 0 0'}}>Acesso restrito a usuários autorizados.</p>
             </div>
           </section>}
 
