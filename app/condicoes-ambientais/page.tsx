@@ -27,7 +27,7 @@ export default function CondicoesAmbientais(){
  const [estruturasRisco,setEstruturasRisco]=useState<Record<'planta'|'instalacao'|'posto'|'estacao',Item[]>>({planta:[],instalacao:[],posto:[],estacao:[]});
  const [situacao,setSituacao]=useState<'rascunho'|'concluida'|'reaberta'>('rascunho'),[riscos,setRiscos]=useState<{id:string;titulo:string}[]>([]),[riscosSelecionados,setRiscosSelecionados]=useState<string[]>([]);
  const [editandoId,setEditandoId]=useState<string|null>(null),[estruturaOriginal,setEstruturaOriginal]=useState<string|null>(null);
- const navegacaoRestaurada=useRef('');
+
  const chaveNavegacao=cliente&&consultoriaId?`ergobax:ambiental:navegacao:${consultoriaId}:${cliente}`:'';
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
  useEffect(()=>{
@@ -205,12 +205,7 @@ export default function CondicoesAmbientais(){
   if(chaveNavegacao)sessionStorage.setItem(chaveNavegacao,id);
   setMensagem('Avaliação carregada para edição. Salvar alterações atualizará o registro original.');
  }
- useEffect(()=>{
-  if(!chaveNavegacao||navegacaoRestaurada.current===chaveNavegacao)return;
-  navegacaoRestaurada.current=chaveNavegacao;
-  const id=sessionStorage.getItem(chaveNavegacao);
-  if(id)void carregarAvaliacao(id);
- },[chaveNavegacao]);
+
  const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label>{nome}<select value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
  const mudarPonto=(id:string,campo:'nome'|'localizacao'|'observacoes',valor:string)=>setPontos(ps=>ps.map(p=>p.id===id?{...p,[campo]:valor}:p));
  const mudarMedicao=(pid:string,mid:string,campo:keyof Omit<Medicao,'id'>,valor:string)=>setPontos(ps=>ps.map(p=>p.id===pid?{...p,medicoes:p.medicoes.map(m=>m.id===mid?{...m,[campo]:valor}:m)}:p));
