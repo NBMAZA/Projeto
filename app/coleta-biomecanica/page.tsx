@@ -73,7 +73,7 @@ export default function ColetaBiomecanica(){
   rascunhoCarregado.current=chaveRascunho;
   try{const raw=localStorage.getItem(chaveRascunho);if(!raw)return;const d=JSON.parse(raw);
    if(d&&d.versao===1&&d.tela==='formulario'){
-    setTitulo(d.titulo||'');setNivel(d.nivel==='estacao'?'estacao':'posto');setPlanta(d.planta||'');setInstalacao(d.instalacao||'');setPosto(d.posto||'');setEstacao(d.estacao||'');setRespostas(d.respostas||{});setGeral(d.geral||{observacoes:'',comentario:'',plano:''});setGrupo(d.grupo||'Posturas');setTela('formulario');setMensagem('Rascunho local recuperado. Salve a avaliação para gravar no Supabase.');
+    setTitulo(d.titulo||'');setNivel(d.nivel==='estacao'?'estacao':'posto');setPlanta(d.planta||'');setInstalacao(d.instalacao||'');setPosto(d.posto||'');setEstacao(d.estacao||'');setRespostas(d.respostas||{});setGeral(d.geral||{observacoes:'',comentario:'',plano:''});setGrupo(d.grupo||'Posturas');setMensagem('Existe um rascunho local preservado neste navegador. Use Nova avaliação para continuar o preenchimento.');
    }
   }catch{localStorage.removeItem(chaveRascunho)}
  },[chaveRascunho]);
