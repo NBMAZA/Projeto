@@ -36,7 +36,7 @@ export default function ColetaBiomecanica(){
  const [nivel,setNivel]=useState<'posto'|'estacao'>('posto'),[grupo,setGrupo]=useState('Posturas'),[respostas,setRespostas]=useState<Record<string,Resposta>>({}),[geral,setGeral]=useState({observacoes:'',comentario:'',plano:''});
  const [erro,setErro]=useState('');
  const rascunhoCarregado=useRef('');
- const navegacaoCarregada=useRef('');
+
  const [consultoriaId,setConsultoriaId]=useState(''),[titulo,setTitulo]=useState(''),[editandoId,setEditandoId]=useState<string|null>(null),[situacao,setSituacao]=useState('rascunho'),[tela,setTela]=useState<'lista'|'formulario'>('lista'),[avaliacoes,setAvaliacoes]=useState<Avaliacao[]>([]),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
  useEffect(()=>{
   let ativo=true;
@@ -93,20 +93,7 @@ export default function ColetaBiomecanica(){
  }
  useEffect(()=>{if(cliente)void carregarAvaliacoes();else setAvaliacoes([])},[cliente]);
  const chaveNavegacao=cliente&&consultoriaId?`ergobax:biomecanica:navegacao:${consultoriaId}:${cliente}`:'';
- useEffect(()=>{
-  if(!chaveNavegacao||navegacaoCarregada.current===chaveNavegacao)return;
-  navegacaoCarregada.current=chaveNavegacao;
-  try{const d=JSON.parse(sessionStorage.getItem(chaveNavegacao)||'null');if(d?.tela==='formulario'&&d?.editandoId){
-   supabase().from('avaliacoes_biomecanicas').select('id,titulo,nivel,estrutura_id,planta_id,instalacao_id,posto_id,estacao_id,respostas,avaliacao_geral,situacao,created_at').eq('id',d.editandoId).eq('cliente_id',cliente).single().then(({data,error})=>{
-    if(error||!data)return;
-    setEditandoId(data.id);setTitulo(data.titulo);setNivel(data.nivel);setPlanta(data.planta_id||'');setInstalacao(data.instalacao_id||'');setPosto(data.posto_id||'');setEstacao(data.estacao_id||'');setRespostas(data.respostas||{});setGeral(data.avaliacao_geral||{observacoes:'',comentario:'',plano:''});setSituacao(data.situacao);setGrupo(d.grupo||'Posturas');setTela('formulario');
-   });
-  }}catch{sessionStorage.removeItem(chaveNavegacao)}
- },[chaveNavegacao,cliente]);
- useEffect(()=>{
-  if(!chaveNavegacao||navegacaoCarregada.current!==chaveNavegacao)return;
-  sessionStorage.setItem(chaveNavegacao,JSON.stringify({tela,editandoId,grupo}));
- },[chaveNavegacao,tela,editandoId,grupo]);
+
  function nova(){
   setEditandoId(null);setTitulo('');setNivel('posto');setPlanta('');setInstalacao('');setPosto('');setEstacao('');setRespostas({});setGeral({observacoes:'',comentario:'',plano:''});setSituacao('rascunho');setGrupo('Posturas');setMensagem('');setErro('');setTela('formulario');
  }
