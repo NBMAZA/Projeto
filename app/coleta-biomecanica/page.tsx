@@ -36,6 +36,7 @@ export default function ColetaBiomecanica(){
  const [nivel,setNivel]=useState<'posto'|'estacao'>('posto'),[grupo,setGrupo]=useState('Posturas'),[respostas,setRespostas]=useState<Record<string,Resposta>>({}),[geral,setGeral]=useState({observacoes:'',comentario:'',plano:''});
  const [erro,setErro]=useState('');
  const rascunhoCarregado=useRef('');
+ const navegacaoCarregada=useRef('');
  const [consultoriaId,setConsultoriaId]=useState(''),[titulo,setTitulo]=useState(''),[editandoId,setEditandoId]=useState<string|null>(null),[situacao,setSituacao]=useState('rascunho'),[tela,setTela]=useState<'lista'|'formulario'>('lista'),[avaliacoes,setAvaliacoes]=useState<Avaliacao[]>([]),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
  useEffect(()=>{
   let ativo=true;
@@ -91,6 +92,21 @@ export default function ColetaBiomecanica(){
   if(error)setErro(error.message);else setAvaliacoes((data||[]) as Avaliacao[]);
  }
  useEffect(()=>{if(cliente)void carregarAvaliacoes();else setAvaliacoes([])},[cliente]);
+ const chaveNavegacao=cliente&&consultoriaId?`ergobax:biomecanica:navegacao:${consultoriaId}:${cliente}`:'';
+ useEffect(()=>{
+  if(!chaveNavegacao||navegacaoCarregada.current===chaveNavegacao)return;
+  navegacaoCarregada.current=chaveNavegacao;
+  try{const d=JSON.parse(sessionStorage.getItem(chaveNavegacao)||'null');if(d?.tela==='formulario'&&d?.editandoId){
+   supabase().from('avaliacoes_biomecanicas').select('id,titulo,nivel,estrutura_id,planta_id,instalacao_id,posto_id,estacao_id,respostas,avaliacao_geral,situacao,created_at').eq('id',d.editandoId).eq('cliente_id',cliente).single().then(({data,error})=>{
+    if(error||!data)return;
+    setEditandoId(data.id);setTitulo(data.titulo);setNivel(data.nivel);setPlanta(data.planta_id||'');setInstalacao(data.instalacao_id||'');setPosto(data.posto_id||'');setEstacao(data.estacao_id||'');setRespostas(data.respostas||{});setGeral(data.avaliacao_geral||{observacoes:'',comentario:'',plano:''});setSituacao(data.situacao);setGrupo(d.grupo||'Posturas');setTela('formulario');
+   });
+  }}catch{sessionStorage.removeItem(chaveNavegacao)}
+ },[chaveNavegacao,cliente]);
+ useEffect(()=>{
+  if(!chaveNavegacao||navegacaoCarregada.current!==chaveNavegacao)return;
+  sessionStorage.setItem(chaveNavegacao,JSON.stringify({tela,editandoId,grupo}));
+ },[chaveNavegacao,tela,editandoId,grupo]);
  function nova(){
   setEditandoId(null);setTitulo('');setNivel('posto');setPlanta('');setInstalacao('');setPosto('');setEstacao('');setRespostas({});setGeral({observacoes:'',comentario:'',plano:''});setSituacao('rascunho');setGrupo('Posturas');setMensagem('');setErro('');setTela('formulario');
  }
@@ -113,7 +129,7 @@ export default function ColetaBiomecanica(){
  const selecionado=nivel==='posto'?posto:estacao;
  return <div className="ergobax-gestao-page"><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Coleta Biomecânica</strong></span></nav></header><main><section style={{maxWidth:1120}}><p><Link href="/" onClick={e=>{if(tela==='formulario'&&!editandoId&&!window.confirm('Voltar ao painel? O rascunho será preservado apenas neste navegador.'))e.preventDefault()}}>← Voltar ao painel</Link></p><h1>Coleta de Dados Biomecânicos</h1><p style={{fontSize:13}}>Formulário de desenvolvimento. As avaliações são armazenadas no Supabase.</p>
  <div style={{background:"#eef7f4",border:"1px solid #b9d8cb",borderLeft:"4px solid #239b65",padding:"14px 18px",borderRadius:8,margin:"16px 0 22px",overflowWrap:"anywhere"}}><div style={{fontSize:13,color:"#315e54",fontWeight:700,marginBottom:5}}>EMPRESA EM ANÁLISE</div><div style={{fontSize:"clamp(16px,2vw,20px)",fontWeight:700,color:"#102c4a"}}>{clientes.find(c=>c.id===cliente)?.razao_social||"Nenhuma empresa selecionada"}</div></div>{erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
-<div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap',margin:'16px 0'}}><strong>{tela==='lista'?'Avaliações biomecânicas':'Cadastro de avaliação'}</strong>{tela==='lista'?<button type="button" onClick={nova}>Nova avaliação</button>:<div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" onClick={()=>{if(!editandoId&&!window.confirm('Sair do formulário? O rascunho ficará salvo neste navegador, mas não no Supabase.'))return;setTela('lista');void carregarAvaliacoes()}}>Voltar à lista</button><button type="button" disabled={salvando||situacao==='concluida'} onClick={()=>void salvar()}>{salvando?'Salvando...':'Salvar avaliação'}</button><button type="button" disabled={salvando||situacao==='concluida'} onClick={()=>void salvar('concluida')}>Concluir avaliação</button>{situacao==='concluida'&&<button type="button" disabled={salvando} onClick={()=>void salvar('reaberta')}>Reabrir avaliação</button>}</div>}</div>
+<div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap',margin:'16px 0'}}><strong>{tela==='lista'?'Avaliações biomecânicas':'Cadastro de avaliação'}</strong>{tela==='lista'?<button type="button" onClick={nova}>Nova avaliação</button>:<div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" onClick={()=>{if(!editandoId&&!window.confirm('Sair do formulário? O rascunho ficará salvo neste navegador, mas não no Supabase.'))return;setTela('lista');if(chaveNavegacao)sessionStorage.removeItem(chaveNavegacao);void carregarAvaliacoes()}}>Voltar à lista</button><button type="button" disabled={salvando||situacao==='concluida'} onClick={()=>void salvar()}>{salvando?'Salvando...':'Salvar avaliação'}</button><button type="button" disabled={salvando||situacao==='concluida'} onClick={()=>void salvar('concluida')}>Concluir avaliação</button>{situacao==='concluida'&&<button type="button" disabled={salvando} onClick={()=>void salvar('reaberta')}>Reabrir avaliação</button>}</div>}</div>
  {mensagem&&<p role="status" style={{color:'#176b46'}}>{mensagem}</p>}
  {tela==='lista'?<div style={{display:'grid',gap:10}}>{avaliacoes.length===0?<p>Nenhuma avaliação cadastrada para esta empresa.</p>:avaliacoes.map(a=><article key={a.id} style={{border:'1px solid #d5dfeb',borderRadius:8,padding:14,display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><div><strong>{a.titulo}</strong><div style={{fontSize:12,color:'#53657a'}}>{a.nivel==='posto'?'Posto':'Estação'} · {a.situacao} · {new Date(a.created_at).toLocaleDateString('pt-BR')}</div></div><button type="button" onClick={()=>editar(a)}>{a.situacao==='concluida'?'Consultar / Reabrir':'Editar'}</button></article>)}</div>:<>
  <label style={{display:'grid',gap:5,margin:'12px 0',maxWidth:650,fontWeight:600}}>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} disabled={situacao==='concluida'} placeholder="Ex.: Avaliação biomecânica do posto administrativo"/></label>
