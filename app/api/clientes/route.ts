@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const consultoriaId=String(body.consultoria_id||'');
     const cliente=body.cliente||{};
     const cnpj=String(cliente.cnpj||'').replace(/\D/g,'');
-    if(!/^[0-9a-f-]{36}$/i.test(consultoriaId)||!/^\d{14}$/.test(cnpj)||!String(cliente.razao_social||'').trim()||!nome||!/^\S+@\S+\.\S+$/.test(email))
+    if(!/^[0-9a-f-]{36}$/i.test(consultoriaId)||!/^\d{14}$/.test(cnpj)||!String(cliente.razao_social||'').trim())
       return NextResponse.json({error:'Informe consultoria, razão social e CNPJ.'},{status:400});
     const admin=createClient(url,service,{auth:{persistSession:false,autoRefreshToken:false}});
     if(user.app_metadata?.role!=='admin_central'){
