@@ -1,5 +1,5 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {supabase} from '../../lib/supabase';
 import {useClienteAtivo} from '../use-cliente-ativo';
@@ -27,6 +27,8 @@ export default function CondicoesAmbientais(){
  const [estruturasRisco,setEstruturasRisco]=useState<Record<'planta'|'instalacao'|'posto'|'estacao',Item[]>>({planta:[],instalacao:[],posto:[],estacao:[]});
  const [situacao,setSituacao]=useState<'rascunho'|'concluida'|'reaberta'>('rascunho'),[riscos,setRiscos]=useState<{id:string;titulo:string}[]>([]),[riscosSelecionados,setRiscosSelecionados]=useState<string[]>([]);
  const [editandoId,setEditandoId]=useState<string|null>(null),[estruturaOriginal,setEstruturaOriginal]=useState<string|null>(null);
+ const navegacaoRestaurada=useRef('');
+ const chaveNavegacao=cliente&&consultoriaId?`ergobax:ambiental:navegacao:${consultoriaId}:${cliente}`:'';
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
  useEffect(()=>{
   let ativo=true;
@@ -159,7 +161,7 @@ export default function CondicoesAmbientais(){
     const {error:atualizarErro}=await db.rpc('atualizar_avaliacao_ambiental',{p_id:editandoId,p_cliente_id:cliente,p_titulo:titulo.trim(),p_data_coleta:data||null,p_criterios:criterios,p_metodologia:metodologia,p_conclusao:conclusao,p_pontos:pontos.map(p=>({nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:p.medicoes.map(m=>({tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))}))});
     if(atualizarErro)throw atualizarErro;
     await salvarVinculos(editandoId);
-    setPagina(0);setTela('lista');setMensagem('Alterações salvas na avaliação original.');
+    setPagina(0);if(chaveNavegacao)sessionStorage.removeItem(chaveNavegacao);setTela('lista');setMensagem('Alterações salvas na avaliação original.');
     return;
    }
    const {data:av,error:avErro}=await db.from('avaliacoes_ambientais').insert({situacao:'rascunho',consultoria_id:consultoriaId,cliente_id:cliente,nivel,estrutura_id:estruturaId,titulo:titulo.trim(),data_coleta:data||null,criterios,metodologia,conclusao,criado_por:user.id}).select('id').single();
@@ -200,8 +202,15 @@ export default function CondicoesAmbientais(){
   setMetodologia(av.metodologia||'');setConclusao(av.conclusao||'');
   setPontos((pts||[]).map(p=>({id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))})));
   setTela('formulario');
+  if(chaveNavegacao)sessionStorage.setItem(chaveNavegacao,id);
   setMensagem('Avaliação carregada para edição. Salvar alterações atualizará o registro original.');
  }
+ useEffect(()=>{
+  if(!chaveNavegacao||navegacaoRestaurada.current===chaveNavegacao)return;
+  navegacaoRestaurada.current=chaveNavegacao;
+  const id=sessionStorage.getItem(chaveNavegacao);
+  if(id)void carregarAvaliacao(id);
+ },[chaveNavegacao]);
  const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label>{nome}<select value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
  const mudarPonto=(id:string,campo:'nome'|'localizacao'|'observacoes',valor:string)=>setPontos(ps=>ps.map(p=>p.id===id?{...p,[campo]:valor}:p));
  const mudarMedicao=(pid:string,mid:string,campo:keyof Omit<Medicao,'id'>,valor:string)=>setPontos(ps=>ps.map(p=>p.id===pid?{...p,medicoes:p.medicoes.map(m=>m.id===mid?{...m,[campo]:valor}:m)}:p));
@@ -221,7 +230,7 @@ export default function CondicoesAmbientais(){
  {!cliente?<p>Selecione uma Empresa Ativa no painel para consultar as avaliações.</p>:carregandoLista?<p>Carregando avaliações...</p>:avaliacoes.length===0?<p>Nenhuma avaliação encontrada para os filtros selecionados.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr><th style={{textAlign:'left'}}>Avaliação</th><th style={{textAlign:'left'}}>Data</th><th style={{textAlign:'left'}}>Nível</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{avaliacoes.map(a=><tr key={a.id} style={{borderTop:'1px solid #e2e8f0'}}><td style={{padding:'12px 6px'}}>{a.titulo}</td><td>{a.data_coleta||'—'}</td><td>{a.nivel}</td><td>{a.situacao==='concluida'?'Concluída':a.situacao==='reaberta'?'Reaberta':'Rascunho'}</td><td><button type="button" onClick={()=>carregarAvaliacao(a.id)}>Editar</button></td></tr>)}</tbody></table></div>}
  <div style={{display:'flex',gap:12,alignItems:'center',marginTop:16}}><button type="button" disabled={pagina===0||carregandoLista} onClick={()=>setPagina(p=>p-1)}>Anterior</button><span>Página {pagina+1} de {Math.max(1,Math.ceil(total/20))} — {total} avaliações</span><button type="button" disabled={(pagina+1)*20>=total||carregandoLista} onClick={()=>setPagina(p=>p+1)}>Próxima</button></div>
  </div>:<>
- <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={()=>{setTela('lista');setErro('');setMensagem('')}}>← Voltar à lista</button><button type="button" onClick={salvar} disabled={salvando||!consultoriaId||situacao==='concluida'}>{salvando?'Salvando...':editandoId?'Salvar alterações':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>{editandoId?'Edição do registro existente. A estrutura vinculada permanece inalterada.':'Nova avaliação ambiental.'}</span></div>
+ <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={()=>{if(chaveNavegacao)sessionStorage.removeItem(chaveNavegacao);setTela('lista');setErro('');setMensagem('')}}>← Voltar à lista</button><button type="button" onClick={salvar} disabled={salvando||!consultoriaId||situacao==='concluida'}>{salvando?'Salvando...':editandoId?'Salvar alterações':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>{editandoId?'Edição do registro existente. A estrutura vinculada permanece inalterada.':'Nova avaliação ambiental.'}</span></div>
  {editandoId&&<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><strong>Situação: {situacao==='concluida'?'Concluída':situacao==='reaberta'?'Reaberta':'Rascunho'}</strong>{situacao==='concluida'?<button type="button" onClick={()=>mudarSituacao('reaberta')}>Reabrir avaliação</button>:<button type="button" onClick={()=>mudarSituacao('concluida')}>Concluir avaliação</button>}</div>}
  <h2>Identificação da avaliação</h2>
  <div className="ambiental-grid">
