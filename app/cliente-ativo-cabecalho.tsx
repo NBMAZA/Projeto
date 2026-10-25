@@ -42,7 +42,8 @@ export default function ClienteAtivoCabecalho(){
    const valido=ativos.some(c=>c.id===salvo)?salvo:'';
    if(salvo&&!valido)window.localStorage.removeItem(chave(user.id,consultoria));
    setContexto({usuario:user.id,consultoria});setClientes(ativos);setSelecionado(valido);setErro('');
-   window.dispatchEvent(new CustomEvent('portal-nr17:empresa-ativa',{detail:{clienteId:valido}}));
+   // Não emita mudança de Empresa Ativa em simples revalidações de sessão/foco.
+   // O evento é reservado à troca explícita no seletor, em alterar().
   }
   void carregar();
   const {data:{subscription}}=db.auth.onAuthStateChange(()=>{void carregar()});
