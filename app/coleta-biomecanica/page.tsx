@@ -90,7 +90,8 @@ export default function ColetaBiomecanica(){
  function abrirRisco(codigo:string){
   const estrutura=nivel==='posto'?posto:estacao;
   if(!cliente||!estrutura){setErro('Selecione a empresa e o posto ou estação antes de registrar um risco.');return}
-  const params=new URLSearchParams({novo:'1',cliente,nivel,estrutura,criterio:codigo});
+  const mapaCatalogo:Record<string,string>={B02:'BIO-06',B03:'BIO-04',B04:'BIO-05',B05:'BIO-07',B06:'BIO-08',B07:'BIO-09',B09:'BIO-13',B10:'BIO-14',B11:'BIO-15',B12:'BIO-16',B13:'BIO-17',B14:'BIO-18',B15:'BIO-19',B16:'BIO-11',B17:'BIO-12'};
+  const params=new URLSearchParams({novo:'1',cliente,nivel,estrutura,criterio:codigo,origem_coleta:'1',...(mapaCatalogo[codigo]?{catalogo_codigo:mapaCatalogo[codigo]}:{})});
   window.open('/riscos-identificados?'+params.toString(),'_blank','noopener,noreferrer');
  }
  function atualizarB03(items:OcorrenciaB03[]){setRespostas(p=>({...p,B03:{...(p.B03||inicial()),detalhes_b03:items}}));setFormularioAlterado(true)}
