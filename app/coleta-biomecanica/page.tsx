@@ -114,7 +114,7 @@ export default function ColetaBiomecanica(){
    const result=editandoId?await db.from('avaliacoes_biomecanicas').update(payload).eq('id',editandoId).eq('cliente_id',cliente).select('id').single():await db.from('avaliacoes_biomecanicas').insert({...payload,criado_por:user.id}).select('id').single();
    if(result.error)throw result.error;
    if(chaveRascunho&&!editandoId)localStorage.removeItem(chaveRascunho);
-   setEditandoId(result.data.id);setSituacao(payload.situacao);setMensagem('Avaliação salva com sucesso.');await carregarAvaliacoes();
+   setEditandoId(result.data.id);setSituacao(payload.situacao);setFormularioAlterado(false);setMensagem('Avaliação salva com sucesso.');await carregarAvaliacoes();
   }catch(e){setErro(e instanceof Error?e.message:'Erro ao salvar avaliação.')}finally{setSalvando(false)}
  }
  const selecionado=nivel==='posto'?posto:estacao;
