@@ -52,10 +52,11 @@ export default function RiscosIdentificados(){
  useEffect(()=>{supabase().from('clientes').select('id,razao_social').order('razao_social').then(({data,error})=>{if(error)setErro(error.message);else setClientes(data||[]) });void carregar()},[]);
  useEffect(()=>{setLocais([]);if(!cliente)return;let ativo=true;(async()=>{if(nivel==='planta'){const {data,error}=await supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome');if(ativo){if(error)setErro(error.message);else setLocais(data||[])}}else if(nivel==='posto'){const {data,error}=await supabase().from('postos_trabalho').select('id,nome,instalacoes!inner(plantas!inner(cliente_id))').eq('instalacoes.plantas.cliente_id',cliente).order('nome');if(ativo){if(error)setErro(error.message);else setLocais((data||[]).map((x:any)=>({id:x.id,nome:x.nome})))}}else{const {data,error}=await supabase().from('estacoes_trabalho').select('id,nome,postos_trabalho!inner(instalacoes!inner(plantas!inner(cliente_id)))').eq('postos_trabalho.instalacoes.plantas.cliente_id',cliente).order('nome');if(ativo){if(error)setErro(error.message);else setLocais((data||[]).map((x:any)=>({id:x.id,nome:x.nome})))}}})();return()=>{ativo=false}},[cliente,nivel]);
  const lista=useMemo(()=>riscos.filter(r=>(!cliente||r.cliente_id===cliente)&&(!filtroStatus||r.status===filtroStatus)&&(!filtroClasse||r.classificacao===filtroClasse)&&(!busca||[r.titulo,r.criterio_codigo||''].join(' ').toLowerCase().includes(busca.toLowerCase()))),[riscos,cliente,filtroStatus,filtroClasse,busca]);
+ function destinoColeta(){const p=new URLSearchParams(window.location.search);if(p.get('origem_coleta')!=='bio')return '/coleta-biomecanica';const q=new URLSearchParams();if(p.get('retorno_avaliacao'))q.set('retorno_avaliacao',p.get('retorno_avaliacao')!);if(p.get('retorno_grupo'))q.set('retorno_grupo',p.get('retorno_grupo')!);return '/coleta-biomecanica-bio'+(q.size?'?'+q.toString():'')}
  function cancelarCadastro(){
   if(['1','bio'].includes(new URLSearchParams(window.location.search).get('origem_coleta')||'')){
    if(window.opener&&!window.opener.closed){window.opener.focus();window.close();return}
-   window.location.assign(new URLSearchParams(window.location.search).get('origem_coleta')==='bio'?'/coleta-biomecanica-bio':'/coleta-biomecanica');return;
+   window.location.assign(destinoColeta());return;
   }
   setModo('painel');
  }
