@@ -296,12 +296,9 @@ export default function CondicoesAmbientais(){
  
  </section>:null)}
  </div></div>
- <h2>Riscos vinculados</h2>
- <p style={{fontSize:13,color:'#53657a'}}>Cadastre riscos específicos desta avaliação. O sistema não classifica riscos automaticamente.</p>
- <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:12}}>
- <button type="button" disabled={situacao==='concluida'||!editandoId} onClick={()=>{setErroRisco('');setRiscoTitulo('');setRiscoGrupo('');setRiscoObservacoes('');setSeletorRiscoAberto(true)}}>+ Incluir risco</button>
- <span style={{fontSize:12,color:'#53657a'}}>{riscosSelecionados.length} risco(s) vinculado(s)</span>
- </div>
+ <h2>Riscos gerais já vinculados</h2>
+ <p style={{fontSize:13,color:'#53657a'}}>Os riscos existentes sem ponto específico permanecem preservados. Para novos riscos, utilize “+ Adicionar Risco” dentro do ponto de coleta correspondente.</p>
+ <div style={{marginBottom:12,fontSize:12,color:'#53657a'}}>{riscosSelecionados.length} risco(s) geral(is) vinculado(s)</div>
  {!editandoId&&<p style={{fontSize:12,color:'#53657a'}}>Salve primeiro a avaliação ambiental para incluir riscos.</p>}
  {riscosSelecionados.length===0?<p>Nenhum risco vinculado a esta avaliação.</p>:<div style={{display:'grid',gap:8,marginBottom:16}}>{riscosSelecionados.map(id=>{const risco=riscos.find(r=>r.id===id);return <div key={id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,border:'1px solid #cbd5e1',padding:10,borderRadius:8}}><span>{risco?.titulo||'Risco cadastrado'}</span><button type="button" disabled={situacao==='concluida'} onClick={()=>setRiscosSelecionados(a=>a.filter(x=>x!==id))}>Remover vínculo</button></div>})}</div>}
  {seletorRiscoAberto&&<div role="presentation" style={{position:'fixed',inset:0,background:'rgba(15,23,42,.55)',display:'flex',justifyContent:'center',alignItems:'center',padding:16,zIndex:1000}} onClick={()=>!criandoRisco&&setSeletorRiscoAberto(false)}>
