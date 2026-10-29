@@ -19,7 +19,7 @@ export default function CondicoesAmbientais(){
  const [pontos,setPontos]=useState<Ponto[]>([novoPonto()]),[erro,setErro]=useState('');
  const [empresaAtiva,setEmpresaAtiva]=useState(false);
  const [consultoriaId,setConsultoriaId]=useState(''),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
- const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string}[]>([]);
+ const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string;estado_vigencia:string}[]>([]);
  const [tela,setTela]=useState<'lista'|'formulario'>('lista'),[busca,setBusca]=useState(''),[pagina,setPagina]=useState(0),[total,setTotal]=useState(0),[carregandoLista,setCarregandoLista]=useState(false);
  const [filtroNivel,setFiltroNivel]=useState(''),[filtroData,setFiltroData]=useState('');
  const [seletorRiscoAberto,setSeletorRiscoAberto]=useState(false),[riscoTitulo,setRiscoTitulo]=useState(''),[riscoGrupo,setRiscoGrupo]=useState(''),[riscoObservacoes,setRiscoObservacoes]=useState(''),[riscoNivel,setRiscoNivel]=useState<Nivel>('cliente'),[riscoEstrutura,setRiscoEstrutura]=useState(''),[criandoRisco,setCriandoRisco]=useState(false);
@@ -28,6 +28,9 @@ export default function CondicoesAmbientais(){
  const [situacao,setSituacao]=useState<'rascunho'|'concluida'|'reaberta'>('rascunho'),[riscos,setRiscos]=useState<{id:string;titulo:string}[]>([]),[riscosSelecionados,setRiscosSelecionados]=useState<string[]>([]);
  const [editandoId,setEditandoId]=useState<string|null>(null),[estruturaOriginal,setEstruturaOriginal]=useState<string|null>(null);
 
+ const [estadoVigencia,setEstadoVigencia]=useState('em_elaboracao');
+ const bloqueada=!!editandoId&&estadoVigencia!=='em_elaboracao';
+ const nomeEstado=(v:string)=>({em_elaboracao:'Em elaboração',concluida:'Concluída',vigente:'Vigente',historica:'Histórica',cancelada:'Cancelada'} as Record<string,string>)[v]||v;
  const chaveNavegacao=cliente&&consultoriaId?`ergobax:ambiental:navegacao:${consultoriaId}:${cliente}`:'';
  const [formularioAlterado,setFormularioAlterado]=useState(false);
  const [criterios,setCriterios]=useState<Record<Medicao['tipo'],string>>({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
@@ -65,7 +68,7 @@ export default function CondicoesAmbientais(){
   let ativo=true;
   (async()=>{
    setCarregandoLista(true);
-   let q=supabase().from('avaliacoes_ambientais').select('id,titulo,data_coleta,nivel,created_at,situacao',{count:'exact'}).eq('consultoria_id',consultoriaId).eq('cliente_id',cliente);
+   let q=supabase().from('avaliacoes_ambientais').select('id,titulo,data_coleta,nivel,created_at,situacao,estado_vigencia',{count:'exact'}).eq('consultoria_id',consultoriaId).eq('cliente_id',cliente);
    if(busca.trim())q=q.ilike('titulo','%'+busca.trim().replace(/[%_,]/g,'')+'%');
    if(filtroNivel)q=q.eq('nivel',filtroNivel);
    if(filtroData)q=q.eq('data_coleta',filtroData);
@@ -96,12 +99,12 @@ export default function CondicoesAmbientais(){
  },[cliente]);
  useEffect(()=>{if(!cliente)return;let ativo=true;supabase().from('riscos_identificados').select('id,titulo').eq('cliente_id',cliente).order('titulo').then(({data,error})=>{if(ativo){if(error)setErro(error.message);else setRiscos(data||[])}});return()=>{ativo=false}},[cliente]);
  function novaAvaliacao(){
-  setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setRiscoTitulo('');
+  setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setEstadoVigencia('em_elaboracao');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setRiscoTitulo('');
   setTitulo('');setData('');setNivel('cliente');setPlanta('');setInstalacao('');setPosto('');setEstacao('');
   setMetodologia('');setConclusao('');setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
   setPontos([novoPonto()]);setFormularioAlterado(false);setErro('');setMensagem('');setTela('formulario');
  }
- async function incluirRisco(){
+ async function incluirRisco(){if(bloqueada){setErroRisco('Avaliação concluída: edição bloqueada.');return}
   setErroRisco('');
   if(!editandoId){setErroRisco('Salve a avaliação ambiental antes de incluir um risco.');return}
   if(!riscoTitulo.trim()){setErroRisco('Informe o título do risco.');return}
@@ -128,7 +131,7 @@ export default function CondicoesAmbientais(){
    setErroRisco(detalhe?('Não foi possível incluir o risco: '+detalhe+(falha?.code?' (código '+falha.code+')':'')):'Não foi possível incluir o risco. Verifique os dados e tente novamente.');
   }finally{setCriandoRisco(false)}
  }
- async function salvarVinculos(id:string){
+ async function salvarVinculos(id:string){if(bloqueada)throw new Error('Avaliação concluída: vínculos bloqueados.');
   const db=supabase();
   const {data:atuais,error:le}=await db.from('avaliacoes_ambientais_riscos').select('risco_id').eq('avaliacao_id',id);
   if(le)throw le;
@@ -138,15 +141,20 @@ export default function CondicoesAmbientais(){
   if(incluir.length){const {error}=await db.from('avaliacoes_ambientais_riscos').insert(incluir.map(risco_id=>({avaliacao_id:id,risco_id})));if(error)throw error}
   if(excluir.length){const {error}=await db.from('avaliacoes_ambientais_riscos').delete().eq('avaliacao_id',id).in('risco_id',excluir);if(error)throw error}
  }
- async function mudarSituacao(proxima:'concluida'|'reaberta'){
-  if(!editandoId)return;
-  setErro('');setMensagem('');
-  if(!window.confirm(proxima==='concluida'?'Concluir esta avaliação?':'Reabrir esta avaliação para edição?'))return;
-  const {error}=await supabase().from('avaliacoes_ambientais').update({situacao:proxima,updated_at:new Date().toISOString()}).eq('id',editandoId).eq('cliente_id',cliente).eq('consultoria_id',consultoriaId);
+ async function mudarSituacao(acao:'concluir'|'vigente',id?:string){
+  const alvo=id||editandoId;if(!alvo)return;
+  if(formularioAlterado&&tela==='formulario'){setErro('Salve as alterações antes de continuar.');return}
+  if(!window.confirm(acao==='concluir'?'Concluir esta avaliação? Os campos serão bloqueados para edição.':'Definir esta avaliação como vigente e arquivar a vigente anterior?'))return;
+  setSalvando(true);setErro('');setMensagem('');
+  const {error}=await supabase().rpc('alterar_vigencia_ambiental',{p_avaliacao_id:alvo,p_acao:acao});
+  setSalvando(false);
   if(error){setErro(error.message);return}
-  setSituacao(proxima);setMensagem(proxima==='concluida'?'Avaliação concluída.':'Avaliação reaberta para edição.');
+  const novo=acao==='concluir'?'concluida':'vigente';
+  if(editandoId===alvo){setEstadoVigencia(novo);if(acao==='concluir')setSituacao('concluida')}
+  setAvaliacoes(prev=>prev.map(a=>({...a,estado_vigencia:a.id===alvo?novo:acao==='vigente'&&a.estado_vigencia==='vigente'?'historica':a.estado_vigencia})));
+  setMensagem(acao==='concluir'?'Avaliação concluída com sucesso. Edição bloqueada.':'Avaliação definida como vigente com sucesso.');
  }
- async function salvar(){
+ async function salvar(){if(bloqueada){setErro('Avaliação concluída: edição bloqueada.');return}
   setErro('');setMensagem('');
   if(!cliente||!consultoriaId||!titulo.trim()){setErro('Informe a empresa e o título da avaliação.');return}
   const estruturaId=editandoId?estruturaOriginal:nivel==='cliente'?null:nivel==='planta'?planta:nivel==='instalacao'?instalacao:nivel==='posto'?posto:estacao;
@@ -195,7 +203,7 @@ export default function CondicoesAmbientais(){
   if(pe){setErro(pe.message);return}
   const {data:ms,error:me}=await db.from('medicoes_ambientais').select('*').in('ponto_id',(pts||[]).map(p=>p.id).length?(pts||[]).map(p=>p.id):['00000000-0000-0000-0000-000000000000']).order('ordem');
   if(me){setErro(me.message);return}
-  setEditandoId(av.id);setEstruturaOriginal(av.estrutura_id||null);setSituacao(av.situacao||'rascunho');
+  setEditandoId(av.id);setEstadoVigencia(av.estado_vigencia||'em_elaboracao');setEstruturaOriginal(av.estrutura_id||null);setSituacao(av.situacao||'rascunho');
   const {data:vinculos,error:ve}=await db.from('avaliacoes_ambientais_riscos').select('risco_id').eq('avaliacao_id',id);
   if(ve){setErro(ve.message);return}setRiscosSelecionados((vinculos||[]).map(v=>v.risco_id));
   setTitulo(av.titulo);setData(av.data_coleta||'');setNivel(av.nivel as Nivel);
@@ -204,13 +212,13 @@ export default function CondicoesAmbientais(){
   setPontos((pts||[]).map(p=>({id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))})));
   setTela('formulario');setFormularioAlterado(false);
   if(chaveNavegacao)sessionStorage.setItem(chaveNavegacao,id);
-  setMensagem('Avaliação carregada para edição. Salvar alterações atualizará o registro original.');
+  setMensagem(av.estado_vigencia==='em_elaboracao'?'Avaliação carregada para edição.':'Avaliação carregada somente para consulta.');
  }
 
  const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label>{nome}<select value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
  const mudarPonto=(id:string,campo:'nome'|'localizacao'|'observacoes',valor:string)=>setPontos(ps=>ps.map(p=>p.id===id?{...p,[campo]:valor}:p));
  const mudarMedicao=(pid:string,mid:string,campo:keyof Omit<Medicao,'id'>,valor:string)=>setPontos(ps=>ps.map(p=>p.id===pid?{...p,medicoes:p.medicoes.map(m=>m.id===mid?{...m,[campo]:valor}:m)}:p));
- return <div className="ergobax-gestao-page" onChangeCapture={e=>{const tag=(e.target as HTMLElement).tagName;if(tela==='formulario'&&(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'))setFormularioAlterado(true)}}><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Condições Ambientais</strong></span></nav></header><main><section style={{maxWidth:1100}}>
+ return <div className="ergobax-gestao-page" onChangeCapture={e=>{const tag=(e.target as HTMLElement).tagName;if(tela==='formulario'&&!bloqueada&&(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'))setFormularioAlterado(true)}}><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Condições Ambientais</strong></span></nav></header><main><section style={{maxWidth:1100}}>
  <p><Link href="/">← Voltar ao painel</Link></p><h1>Condições Ambientais</h1>
  <p style={{color:'#53657a'}}>Avaliações ambientais da Empresa Ativa. Consulte os registros ou inicie uma nova coleta.</p>
  <div style={{background:"#eef7f4",border:"1px solid #b9d8cb",borderLeft:"4px solid #239b65",padding:"14px 18px",borderRadius:8,margin:"16px 0 22px",overflowWrap:"anywhere"}}><div style={{fontSize:13,color:"#315e54",fontWeight:700,marginBottom:5}}>EMPRESA EM ANÁLISE</div><div style={{fontSize:"clamp(16px,2vw,20px)",fontWeight:700,color:"#102c4a",lineHeight:1.45}}>{clientes.find(c=>c.id===cliente)?.razao_social||"Nenhuma empresa selecionada"}</div></div>
@@ -223,11 +231,14 @@ export default function CondicoesAmbientais(){
  <label>Nível<select value={filtroNivel} onChange={e=>{setFiltroNivel(e.target.value);setPagina(0)}}><option value="">Todos</option><option value="cliente">Cliente</option><option value="planta">Planta</option><option value="instalacao">Instalação</option><option value="posto">Posto</option><option value="estacao">Estação</option></select></label>
  <label>Data da coleta<input type="date" value={filtroData} onChange={e=>{setFiltroData(e.target.value);setPagina(0)}}/></label>
  </div>
- {!cliente?<p>Selecione uma Empresa Ativa no painel para consultar as avaliações.</p>:carregandoLista?<p>Carregando avaliações...</p>:avaliacoes.length===0?<p>Nenhuma avaliação encontrada para os filtros selecionados.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr><th style={{textAlign:'left'}}>Avaliação</th><th style={{textAlign:'left'}}>Data</th><th style={{textAlign:'left'}}>Nível</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{avaliacoes.map(a=><tr key={a.id} style={{borderTop:'1px solid #e2e8f0'}}><td style={{padding:'12px 6px'}}>{a.titulo}</td><td>{a.data_coleta||'—'}</td><td>{a.nivel}</td><td>{a.situacao==='concluida'?'Concluída':a.situacao==='reaberta'?'Reaberta':'Rascunho'}</td><td><button type="button" onClick={()=>carregarAvaliacao(a.id)}>Editar</button></td></tr>)}</tbody></table></div>}
+ {!cliente?<p>Selecione uma Empresa Ativa no painel para consultar as avaliações.</p>:carregandoLista?<p>Carregando avaliações...</p>:avaliacoes.length===0?<p>Nenhuma avaliação encontrada para os filtros selecionados.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr><th style={{textAlign:'left'}}>Avaliação</th><th style={{textAlign:'left'}}>Data</th><th style={{textAlign:'left'}}>Nível</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{avaliacoes.map(a=><tr key={a.id} style={{borderTop:'1px solid #e2e8f0'}}><td style={{padding:'12px 6px'}}>{a.titulo}</td><td>{a.data_coleta||'—'}</td><td>{a.nivel}</td><td>{nomeEstado(a.estado_vigencia)}</td><td><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><button type="button" onClick={()=>carregarAvaliacao(a.id)}>{a.estado_vigencia==='em_elaboracao'?'Editar':'Consultar'}</button>{a.estado_vigencia==='em_elaboracao'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('concluir',a.id)}>Concluir avaliação</button>}{a.estado_vigencia==='concluida'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('vigente',a.id)}>Definir vigente</button>}</div></td></tr>)}</tbody></table></div>}
  <div style={{display:'flex',gap:12,alignItems:'center',marginTop:16}}><button type="button" disabled={pagina===0||carregandoLista} onClick={()=>setPagina(p=>p-1)}>Anterior</button><span>Página {pagina+1} de {Math.max(1,Math.ceil(total/20))} — {total} avaliações</span><button type="button" disabled={(pagina+1)*20>=total||carregandoLista} onClick={()=>setPagina(p=>p+1)}>Próxima</button></div>
  </div>:<>
- <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={()=>{if(formularioAlterado&&!window.confirm('Descartar as alterações não salvas e voltar à lista?'))return;if(chaveNavegacao)sessionStorage.removeItem(chaveNavegacao);setFormularioAlterado(false);setTela('lista');setErro('');setMensagem('')}}>← Voltar à lista</button><button type="button" onClick={salvar} disabled={salvando||!consultoriaId||situacao==='concluida'}>{salvando?'Salvando...':editandoId?'Salvar alterações':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>{editandoId?'Edição do registro existente. A estrutura vinculada permanece inalterada.':'Nova avaliação ambiental.'}</span></div>
- {editandoId&&<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><strong>Situação: {situacao==='concluida'?'Concluída':situacao==='reaberta'?'Reaberta':'Rascunho'}</strong>{situacao==='concluida'?<button type="button" onClick={()=>mudarSituacao('reaberta')}>Reabrir avaliação</button>:<button type="button" onClick={()=>mudarSituacao('concluida')}>Concluir avaliação</button>}</div>}
+ <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={()=>{if(formularioAlterado&&!window.confirm('Descartar as alterações não salvas e voltar à lista?'))return;if(chaveNavegacao)sessionStorage.removeItem(chaveNavegacao);setFormularioAlterado(false);setTela('lista');setErro('');setMensagem('')}}>← Voltar à lista</button><button type="button" onClick={salvar} disabled={salvando||!consultoriaId||bloqueada}>{salvando?'Salvando...':editandoId?'Salvar alterações':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>{editandoId?'Edição do registro existente. A estrutura vinculada permanece inalterada.':'Nova avaliação ambiental.'}</span></div>
+ {editandoId&&<div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><strong>Situação: {nomeEstado(estadoVigencia)}</strong>{estadoVigencia==='em_elaboracao'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('concluir')}>Concluir avaliação</button>}{estadoVigencia==='concluida'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('vigente')}>Definir vigente</button>}</div>}
+ {bloqueada&&<p style={{background:'#eef3f8',padding:12,borderRadius:8,fontWeight:700}}>Avaliação {nomeEstado(estadoVigencia)} — somente consulta. Para alterar informações, crie uma nova avaliação.</p>}
+ <fieldset disabled={bloqueada} style={{border:0,padding:0,minWidth:0}}>
+
  <h2>Identificação da avaliação</h2>
  <div className="ambiental-grid">
  <label>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ex.: Avaliação ambiental do escritório"/></label>
@@ -289,7 +300,7 @@ export default function CondicoesAmbientais(){
  <h2>Informações técnicas</h2><label>Metodologia<textarea rows={3} value={metodologia} onChange={e=>setMetodologia(e.target.value)}/></label>
  <label>Conclusão técnica<textarea rows={3} value={conclusao} onChange={e=>setConclusao(e.target.value)}/></label>
  <p style={{fontSize:13,color:'#53657a'}}>Os critérios de referência são informativos, definidos por tipo de medição nesta avaliação, e não classificam riscos automaticamente. O vínculo organizacional de uma avaliação existente não pode ser alterado nesta versão. Microfone e associação aos riscos serão integrados nas próximas etapas.</p>
- </>}
+ </fieldset></>}
  <style>{`.ambiental-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}.ambiental-grid label,section>label,article>label{display:grid;gap:5px;margin-bottom:12px}input,select,textarea{max-width:100%;width:100%;box-sizing:border-box}`}</style>
  </section></main></div>;
 }
