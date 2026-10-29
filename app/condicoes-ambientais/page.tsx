@@ -9,7 +9,7 @@ type Medicao={id:string;tipo:'ruido'|'iluminacao_pontual'|'iluminacao_media'|'te
 type Ponto={id:string;nome:string;localizacao:string;observacoes:string;medicoes:Medicao[]};
 const tipos={ruido:'Ruído — dB(A)',iluminacao_pontual:'Iluminação pontual — lux',iluminacao_media:'Iluminação média — lux',temperatura:'Temperatura — °C'};
 const novaMedicao=():Medicao=>({id:crypto.randomUUID(),tipo:'ruido',resultado:'',observacoes:''});
-const novoPonto=():Ponto=>({id:crypto.randomUUID(),nome:'',localizacao:'',observacoes:'',medicoes:[novaMedicao()]});
+const novoPonto=():Ponto=>({id:crypto.randomUUID(),nome:'',localizacao:'',observacoes:'',medicoes:[novaMedicao(),novaMedicao()]});
 const quatroPontos=()=>Array.from({length:4},()=>novoPonto());
 const pontoPreenchido=(p:Ponto)=>Boolean(p.nome.trim()||p.localizacao.trim()||p.observacoes.trim()||p.medicoes.some(m=>m.resultado.trim()||m.observacoes.trim()));
 const pontosParaSalvar=(ps:Ponto[])=>ps.map(p=>({...p,medicoes:p.medicoes.filter(m=>m.resultado.trim()||m.observacoes.trim())}));
@@ -20,6 +20,8 @@ export default function CondicoesAmbientais(){
  const [plantas,setPlantas]=useState<Item[]>([]),[instalacoes,setInstalacoes]=useState<Item[]>([]),[postos,setPostos]=useState<Item[]>([]),[estacoes,setEstacoes]=useState<Item[]>([]);
  const [nivel,setNivel]=useState<Nivel>('cliente'),[data,setData]=useState(''),[titulo,setTitulo]=useState(''),[metodologia,setMetodologia]=useState(''),[conclusao,setConclusao]=useState('');
  const [pontos,setPontos]=useState<Ponto[]>(quatroPontos()),[pontoAtivo,setPontoAtivo]=useState(0),[erro,setErro]=useState('');
+ const [mostrarExtras,setMostrarExtras]=useState(false);
+ useEffect(()=>{setMostrarExtras(false)},[pontoAtivo]);
  const [empresaAtiva,setEmpresaAtiva]=useState(false);
  const [consultoriaId,setConsultoriaId]=useState(''),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
  const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string;estado_vigencia:string}[]>([]);
@@ -219,7 +221,7 @@ export default function CondicoesAmbientais(){
   setTitulo(av.titulo);setData(av.data_coleta||'');setNivel(av.nivel as Nivel);
   setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:'',...(av.criterios||{})});
   setMetodologia(av.metodologia||'');setConclusao(av.conclusao||'');
-  const pontosExistentes=(pts||[]).map(p=>({id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))}));
+  const pontosExistentes=(pts||[]).map(p=>{const medicoes=(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}));return {id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:[...medicoes,...Array.from({length:Math.max(0,2-medicoes.length)},()=>novaMedicao())]}});
   setPontos([...pontosExistentes,...Array.from({length:Math.max(0,4-pontosExistentes.length)},()=>novoPonto())]);setPontoAtivo(0);
   setTela('formulario');setFormularioAlterado(false);
   if(chaveNavegacao)sessionStorage.setItem(chaveNavegacao,id);
@@ -277,20 +279,20 @@ export default function CondicoesAmbientais(){
  <h3 style={{marginTop:0}}>Ponto {String(i+1).padStart(2,'0')}{i>=4?' — registro anterior':''}</h3>
  <div className="ambiental-grid"><label>Identificação<input value={p.nome} onChange={e=>mudarPonto(p.id,'nome',e.target.value)} placeholder="Ex.: Recepção"/></label><label>Localização<input value={p.localizacao} onChange={e=>mudarPonto(p.id,'localizacao',e.target.value)} placeholder="Ex.: Próximo à janela"/></label></div>
  <label>Observações do ponto<textarea rows={2} value={p.observacoes} onChange={e=>mudarPonto(p.id,'observacoes',e.target.value)}/></label>
- <h4>Medições</h4>
- {p.medicoes.map((m,j)=><div key={m.id} style={{borderTop:'1px solid #e2e8f0',padding:'12px 0'}}>
+ <h4>Medições — 01 e 02</h4><p style={{fontSize:12,color:'#53657a'}}>Duas medições principais por ponto. Medições adicionais sob demanda.</p>
+ {p.medicoes.map((m,j)=><div key={m.id} style={{borderTop:'1px solid #e2e8f0',padding:'12px 0',display:j<2||mostrarExtras?'block':'none'}}><strong style={{fontSize:13}}>Medição {String(j+1).padStart(2,'0')}{j>=2?' — adicional':''}</strong>
  <div className="ambiental-grid">
  <label>Tipo de medição<select value={m.tipo} onChange={e=>mudarMedicao(p.id,m.id,'tipo',e.target.value)}>{Object.entries(tipos).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
  <label>Resultado<input value={m.resultado} onChange={e=>mudarMedicao(p.id,m.id,'resultado',e.target.value)} placeholder="Valor medido"/></label>
  </div>
  <label>Observações da medição<textarea rows={2} value={m.observacoes} onChange={e=>mudarMedicao(p.id,m.id,'observacoes',e.target.value)}/></label>
  <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',marginTop:10}}>
- <button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:x.medicoes.filter(y=>y.id!==m.id)}:x))}>Excluir medição {j+1}</button>
- <button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[...x.medicoes.slice(0,j+1),novaMedicao(),...x.medicoes.slice(j+1)]}:x))}>+ Adicionar medição</button>
+ {j>=2&&<button type="button" disabled={bloqueada} onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:x.medicoes.filter(y=>y.id!==m.id)}:x))}>Excluir medição adicional</button>}
  </div>
  </div>)}
+ <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap',margin:'12px 0'}}><button type="button" disabled={bloqueada} onClick={()=>{setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[...x.medicoes,novaMedicao()]}:x));setMostrarExtras(true)}}>+ Adicionar medição adicional</button>{p.medicoes.length>2&&<button type="button" onClick={()=>setMostrarExtras(v=>!v)}>{mostrarExtras?'Ocultar':'Mostrar'} {p.medicoes.length-2} medição(ões) adicional(is)</button>}</div>
  <div style={{marginTop:14,padding:12,background:'#f1f7fa',border:'1px solid #cbd5e1',borderRadius:8}}><div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',flexWrap:'wrap'}}><strong>Riscos deste ponto ({riscosPonto.length})</strong><button type="button" disabled={bloqueada||!editandoId} onClick={()=>abrirRiscoPonto()}>+ Adicionar Risco</button></div>{!editandoId&&<p style={{fontSize:12}}>Salve primeiro a avaliação para cadastrar riscos neste ponto.</p>}{riscoInline&&<div style={{display:'grid',gap:8,background:'white',padding:12,marginTop:10,border:'1px solid #94a3b8',borderRadius:8}}><strong>{riscoInline.id?'Editar risco':'Novo risco'} — Ponto {String(i+1).padStart(2,'0')}</strong>{([['titulo','Título'],['observacoes','Observações'],['perfil_exposicao','Perfil de exposição'],['conclusao_tecnica','Conclusão técnica'],['medidas_existentes','Medidas existentes'],['medidas_recomendadas','Medidas recomendadas'],['plano_acao','Plano de ação'],['responsavel_acao','Responsável']] as const).map(([k,label])=><label key={k} style={{display:'grid',gap:4}}>{label}<textarea rows={k==='titulo'?1:2} value={riscoInline[k]} onChange={e=>setRiscoInline(v=>v?{...v,[k]:e.target.value}:v)}/></label>)}<label>Classificação<select value={riscoInline.classificacao} onChange={e=>setRiscoInline(v=>v?{...v,classificacao:e.target.value}:v)}><option value="nao_classificado">Não classificado</option><option value="baixo">Baixo</option><option value="moderado">Moderado</option><option value="alto">Alto</option><option value="critico">Crítico</option></select></label><label>Situação<select value={riscoInline.status} onChange={e=>setRiscoInline(v=>v?{...v,status:e.target.value}:v)}><option value="aberto">Aberto</option><option value="em_tratamento">Em tratamento</option><option value="controlado">Controlado</option><option value="encerrado">Encerrado</option></select></label><div style={{display:'flex',gap:8}}><button type="button" disabled={salvandoRiscoPonto} onClick={salvarRiscoPonto}>{salvandoRiscoPonto?'Salvando...':'Salvar risco'}</button><button type="button" disabled={salvandoRiscoPonto} onClick={()=>setRiscoInline(null)}>Cancelar</button></div></div>}{riscosPonto.length===0?<p style={{fontSize:12}}>Nenhum risco cadastrado neste ponto.</p>:<div style={{display:'grid',gap:6,marginTop:8}}>{riscosPonto.map(ri=><div key={ri.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,padding:8,background:'white',borderRadius:7}}><span><strong>{ri.titulo}</strong> · {ri.classificacao} · {ri.status}</span><button type="button" disabled={bloqueada} onClick={()=>abrirRiscoPonto(ri.id)}>Editar risco</button></div>)}</div>}</div>
- {p.medicoes.length===0&&<button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[novaMedicao()]}:x))}>+ Adicionar medição</button>}
+
  
  </section>:null)}
  </div></div>
