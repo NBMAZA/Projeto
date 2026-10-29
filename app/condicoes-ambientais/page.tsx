@@ -200,7 +200,7 @@ export default function CondicoesAmbientais(){
    setMensagem('Avaliação salva com sucesso no Supabase.');
   }catch(e){
    if(avaliacaoId)await db.from('avaliacoes_ambientais').delete().eq('id',avaliacaoId);
-   setErro(e instanceof Error?e.message:'Não foi possível salvar a avaliação.');
+   const falha=e as {message?:string;details?:string;hint?:string;code?:string}|null;const detalhe=[falha?.message,falha?.details,falha?.hint].filter(Boolean).join(' — ');setErro(detalhe?('Não foi possível salvar a avaliação: '+detalhe+(falha?.code?' (código '+falha.code+')':'')):'Não foi possível salvar a avaliação. Consulte o erro técnico no navegador.');
   }finally{setSalvando(false)}
  }
  async function carregarAvaliacao(id:string){
