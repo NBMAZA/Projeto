@@ -10,13 +10,16 @@ type Ponto={id:string;nome:string;localizacao:string;observacoes:string;medicoes
 const tipos={ruido:'Ruído — dB(A)',iluminacao_pontual:'Iluminação pontual — lux',iluminacao_media:'Iluminação média — lux',temperatura:'Temperatura — °C'};
 const novaMedicao=():Medicao=>({id:crypto.randomUUID(),tipo:'ruido',resultado:'',observacoes:''});
 const novoPonto=():Ponto=>({id:crypto.randomUUID(),nome:'',localizacao:'',observacoes:'',medicoes:[novaMedicao()]});
+const quatroPontos=()=>Array.from({length:4},()=>novoPonto());
+const pontoPreenchido=(p:Ponto)=>Boolean(p.nome.trim()||p.localizacao.trim()||p.observacoes.trim()||p.medicoes.some(m=>m.resultado.trim()||m.observacoes.trim()));
+const pontosParaSalvar=(ps:Ponto[])=>ps.filter(pontoPreenchido).map(p=>({...p,medicoes:p.medicoes.filter(m=>m.resultado.trim()||m.observacoes.trim())}));
 export default function CondicoesAmbientais(){
  const {clienteAtivo}=useClienteAtivo();
  const [clientes,setClientes]=useState<{id:string;razao_social:string}[]>([]);
  const [cliente,setCliente]=useState(''),[planta,setPlanta]=useState(''),[instalacao,setInstalacao]=useState(''),[posto,setPosto]=useState(''),[estacao,setEstacao]=useState('');
  const [plantas,setPlantas]=useState<Item[]>([]),[instalacoes,setInstalacoes]=useState<Item[]>([]),[postos,setPostos]=useState<Item[]>([]),[estacoes,setEstacoes]=useState<Item[]>([]);
  const [nivel,setNivel]=useState<Nivel>('cliente'),[data,setData]=useState(''),[titulo,setTitulo]=useState(''),[metodologia,setMetodologia]=useState(''),[conclusao,setConclusao]=useState('');
- const [pontos,setPontos]=useState<Ponto[]>([novoPonto()]),[erro,setErro]=useState('');
+ const [pontos,setPontos]=useState<Ponto[]>(quatroPontos()),[erro,setErro]=useState('');
  const [empresaAtiva,setEmpresaAtiva]=useState(false);
  const [consultoriaId,setConsultoriaId]=useState(''),[salvando,setSalvando]=useState(false),[mensagem,setMensagem]=useState('');
  const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string;estado_vigencia:string}[]>([]);
@@ -102,7 +105,7 @@ export default function CondicoesAmbientais(){
   setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setEstadoVigencia('em_elaboracao');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setRiscoTitulo('');
   setTitulo('');setData('');setNivel('cliente');setPlanta('');setInstalacao('');setPosto('');setEstacao('');
   setMetodologia('');setConclusao('');setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
-  setPontos([novoPonto()]);setFormularioAlterado(false);setErro('');setMensagem('');setTela('formulario');
+  setPontos(quatroPontos());setFormularioAlterado(false);setErro('');setMensagem('');setTela('formulario');
  }
  async function incluirRisco(){if(bloqueada){setErroRisco('Avaliação concluída: edição bloqueada.');return}
   setErroRisco('');
@@ -167,7 +170,7 @@ export default function CondicoesAmbientais(){
    if(authErro)throw authErro;
    if(!user)throw new Error('Sessão expirada. Entre novamente.');
    if(editandoId){
-    const {error:atualizarErro}=await db.rpc('atualizar_avaliacao_ambiental',{p_id:editandoId,p_cliente_id:cliente,p_titulo:titulo.trim(),p_data_coleta:data||null,p_criterios:criterios,p_metodologia:metodologia,p_conclusao:conclusao,p_pontos:pontos.map(p=>({nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:p.medicoes.map(m=>({tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))}))});
+    const {error:atualizarErro}=await db.rpc('atualizar_avaliacao_ambiental',{p_id:editandoId,p_cliente_id:cliente,p_titulo:titulo.trim(),p_data_coleta:data||null,p_criterios:criterios,p_metodologia:metodologia,p_conclusao:conclusao,p_pontos:pontosParaSalvar(pontos).map(p=>({nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:p.medicoes.map(m=>({tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))}))});
     if(atualizarErro)throw atualizarErro;
     await salvarVinculos(editandoId);
     setPagina(0);if(chaveNavegacao)sessionStorage.removeItem(chaveNavegacao);setTela('lista');setMensagem('Alterações salvas na avaliação original.');
@@ -176,8 +179,9 @@ export default function CondicoesAmbientais(){
    const {data:av,error:avErro}=await db.from('avaliacoes_ambientais').insert({situacao:'rascunho',consultoria_id:consultoriaId,cliente_id:cliente,nivel,estrutura_id:estruturaId,titulo:titulo.trim(),data_coleta:data||null,criterios,metodologia,conclusao,criado_por:user.id}).select('id').single();
    if(avErro)throw avErro;
    avaliacaoId=av.id;
-   for(let i=0;i<pontos.length;i++){
-    const p=pontos[i];
+   const pontosValidos=pontosParaSalvar(pontos);
+   for(let i=0;i<pontosValidos.length;i++){
+    const p=pontosValidos[i];
     const {data:pt,error:ptErro}=await db.from('pontos_coleta_ambientais').insert({avaliacao_id:avaliacaoId,nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,ordem:i}).select('id').single();
     if(ptErro)throw ptErro;
     if(p.medicoes.length){
@@ -209,7 +213,8 @@ export default function CondicoesAmbientais(){
   setTitulo(av.titulo);setData(av.data_coleta||'');setNivel(av.nivel as Nivel);
   setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:'',...(av.criterios||{})});
   setMetodologia(av.metodologia||'');setConclusao(av.conclusao||'');
-  setPontos((pts||[]).map(p=>({id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))})));
+  const pontosExistentes=(pts||[]).map(p=>({id:crypto.randomUUID(),nome:p.nome,localizacao:p.localizacao,observacoes:p.observacoes,medicoes:(ms||[]).filter(m=>m.ponto_id===p.id).map(m=>({id:crypto.randomUUID(),tipo:m.tipo,resultado:m.resultado,observacoes:m.observacoes}))}));
+  setPontos([...pontosExistentes,...Array.from({length:Math.max(0,4-pontosExistentes.length)},()=>novoPonto())]);
   setTela('formulario');setFormularioAlterado(false);
   if(chaveNavegacao)sessionStorage.setItem(chaveNavegacao,id);
   setMensagem(av.estado_vigencia==='em_elaboracao'?'Avaliação carregada para edição.':'Avaliação carregada somente para consulta.');
@@ -256,8 +261,9 @@ export default function CondicoesAmbientais(){
  <p style={{color:'#53657a',fontSize:13}}>Informe uma vez o critério aplicável a cada tipo de medição. Os critérios serão utilizados como referência nos pontos de coleta desta avaliação.</p>
  <div className="ambiental-grid">{(Object.entries(tipos) as [Medicao['tipo'],string][]).map(([tipo,nome])=><label key={tipo}>{nome}<input value={criterios[tipo]} onChange={e=>setCriterios(atual=>({...atual,[tipo]:e.target.value}))} placeholder="Ex.: norma, limite ou critério aplicável"/></label>)}</div>
  <h2>Pontos de coleta</h2>
- {pontos.map((p,i)=><article key={p.id} style={{border:'1px solid #cbd5e1',borderRadius:10,padding:16,marginBottom:16}}>
- <div style={{display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><h3>Ponto {i+1}</h3><button type="button" onClick={()=>setPontos(ps=>ps.filter(x=>x.id!==p.id))}>Excluir ponto</button></div>
+ <p style={{fontSize:13,color:'#53657a'}}>Quatro pontos disponíveis, com preenchimento opcional. Abra apenas os pontos necessários. Avaliações antigas com mais de quatro pontos permanecem preservadas.</p>
+ {pontos.map((p,i)=><details key={p.id} open={undefined} style={{border:'1px solid #cbd5e1',borderRadius:10,padding:'10px 14px',marginBottom:10,background:'#fff'}}>
+ <summary style={{cursor:'pointer',fontWeight:700,padding:'8px 0',color:'#123251'}}>Ponto {String(i+1).padStart(2,'0')}{i>=4?' — registro anterior':''} · {p.nome.trim()||'Não preenchido'}{pontoPreenchido(p)?' · Preenchido':' · Opcional'}</summary>
  <div className="ambiental-grid"><label>Identificação<input value={p.nome} onChange={e=>mudarPonto(p.id,'nome',e.target.value)} placeholder="Ex.: Recepção"/></label><label>Localização<input value={p.localizacao} onChange={e=>mudarPonto(p.id,'localizacao',e.target.value)} placeholder="Ex.: Próximo à janela"/></label></div>
  <label>Observações do ponto<textarea rows={2} value={p.observacoes} onChange={e=>mudarPonto(p.id,'observacoes',e.target.value)}/></label>
  <h4>Medições</h4>
@@ -273,8 +279,7 @@ export default function CondicoesAmbientais(){
  </div>
  </div>)}
  {p.medicoes.length===0&&<button type="button" onClick={()=>setPontos(ps=>ps.map(x=>x.id===p.id?{...x,medicoes:[novaMedicao()]}:x))}>+ Adicionar medição</button>}
- </article>)}
- <button type="button" onClick={()=>setPontos(ps=>[...ps,novoPonto()])}>+ Adicionar ponto de coleta</button>
+ </details>)}
  <h2>Riscos vinculados</h2>
  <p style={{fontSize:13,color:'#53657a'}}>Cadastre riscos específicos desta avaliação. O sistema não classifica riscos automaticamente.</p>
  <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:12}}>
