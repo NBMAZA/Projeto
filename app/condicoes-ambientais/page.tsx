@@ -245,7 +245,7 @@ export default function CondicoesAmbientais(){
  <label>Data da coleta<input type="date" value={data} onChange={e=>setData(e.target.value)}/></label>
  
  <label>Vincular a<select value={nivel} disabled={!!editandoId} onChange={e=>setNivel(e.target.value as Nivel)}>{([['cliente','Cliente'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto de trabalho'],['estacao','Estação de trabalho']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
- {editandoId&&nivel!=='cliente'&&<p style={{fontSize:12,color:'#53657a'}}>Vínculo organizacional preservado nesta edição (ID: {estruturaOriginal}).</p>}
+ {editandoId&&<div style={{padding:'12px 14px',border:'1px solid #cbd5e1',borderRadius:8,background:'#f8fafc',marginBottom:12}}><strong>Ambiente vinculado à avaliação</strong><p style={{margin:'6px 0 0'}}>{nivel==='cliente'?clientes.find(c=>c.id===cliente)?.razao_social||'Empresa Ativa':(estruturasRisco[nivel].find(x=>x.id===estruturaOriginal)?.nome||'Carregando identificação do ambiente...')}</p><small style={{color:'#53657a'}}>Vínculo preservado e não editável nesta avaliação.</small></div>}
  {!editandoId&&nivel!=='cliente'&&selecao('Planta',planta,setPlanta,plantas,!cliente)}
  {!editandoId&&['instalacao','posto','estacao'].includes(nivel)&&selecao('Instalação',instalacao,setInstalacao,instalacoes,!planta)}
  {!editandoId&&['posto','estacao'].includes(nivel)&&selecao('Posto',posto,setPosto,postos,!instalacao)}
