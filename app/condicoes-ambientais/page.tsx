@@ -242,12 +242,12 @@ export default function CondicoesAmbientais(){
  {erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
  {mensagem&&<p role="status" style={{color:'#166534'}}>{mensagem}</p>}
  {tela==='lista'?<div>
- <h2>Selecionar estrutura física</h2><p style={{fontSize:13,color:'#53657a'}}>Selecione o nível e a estrutura que será avaliada. Vigência e histórico são apresentados exclusivamente para esse vínculo.</p>
- <div className="ambiental-grid">
- <label>Nível da avaliação<select value={nivelSelecionado} onChange={e=>{setNivelSelecionado(e.target.value as Nivel);setPagina(0)}}><option value="cliente">Cliente</option><option value="planta">Planta</option><option value="instalacao">Instalação</option><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option></select></label>
+ <div style={{borderLeft:'4px solid #239b65',paddingLeft:12,marginTop:8}}><h2 style={{fontSize:19,margin:'0 0 6px'}}>Selecionar estrutura física</h2><p style={{fontSize:13,margin:0}}>Selecione a planta, instalação e posto; informe a estação quando aplicável. Para avaliações gerais, escolha o nível correspondente. O histórico pertence à estrutura selecionada.</p></div>
+ <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(195px,1fr))',gap:8,margin:'12px 0 14px'}}>
  {nivelSelecionado!=='cliente'&&selecao('Planta',planta,v=>{setPlanta(v);setPagina(0)},plantas,!cliente)}
  {['instalacao','posto','estacao'].includes(nivelSelecionado)&&selecao('Instalação',instalacao,v=>{setInstalacao(v);setPagina(0)},instalacoes,!planta)}
  {['posto','estacao'].includes(nivelSelecionado)&&selecao('Posto de trabalho',posto,v=>{setPosto(v);setPagina(0)},postos,!instalacao)}
+ <label style={{display:'grid',gap:6,minWidth:0,fontWeight:600,fontSize:13}}>Nível da avaliação<select style={{width:'100%',minWidth:0,padding:'9px 10px',border:'1px solid #cbd5e1',borderRadius:8,boxSizing:'border-box'}} value={nivelSelecionado} onChange={e=>{setNivelSelecionado(e.target.value as Nivel);setPagina(0)}}><option value="cliente">Cliente (avaliação geral)</option><option value="planta">Planta</option><option value="instalacao">Instalação</option><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option></select></label>
  {nivelSelecionado==='estacao'&&selecao('Estação de trabalho',estacao,v=>{setEstacao(v);setPagina(0)},estacoes,!posto)}
  </div>
  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><h2>Avaliações da estrutura selecionada</h2><button type="button" disabled={!cliente||!estruturaSelecionada} onClick={novaAvaliacao}>+ Nova avaliação</button></div>
