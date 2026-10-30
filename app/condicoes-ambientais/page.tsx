@@ -250,13 +250,6 @@ export default function CondicoesAmbientais(){
  <label style={{display:'grid',gap:6,minWidth:0,fontWeight:600,fontSize:13}}>Nível da avaliação<select style={{width:'100%',minWidth:0,padding:'9px 10px',border:'1px solid #cbd5e1',borderRadius:8,boxSizing:'border-box'}} value={nivelSelecionado} onChange={e=>{setNivelSelecionado(e.target.value as Nivel);setPagina(0)}}><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option><option value="cliente">Cliente (geral)</option><option value="planta">Planta (geral)</option><option value="instalacao">Instalação (geral)</option></select></label>
  {nivelSelecionado==='estacao'&&selecao('Estação de trabalho',estacao,v=>{setEstacao(v);setPagina(0)},estacoes,!posto)}
  </div>
- <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(195px,1fr))',gap:8,margin:'12px 0 14px'}}>
- {nivelSelecionado!=='cliente'&&selecao('Planta',planta,v=>{setPlanta(v);setPagina(0)},plantas,!cliente)}
- {['instalacao','posto','estacao'].includes(nivelSelecionado)&&selecao('Instalação',instalacao,v=>{setInstalacao(v);setPagina(0)},instalacoes,!planta)}
- {['posto','estacao'].includes(nivelSelecionado)&&selecao('Posto de trabalho',posto,v=>{setPosto(v);setPagina(0)},postos,!instalacao)}
- <label style={{display:'grid',gap:6,minWidth:0,fontWeight:600,fontSize:13}}>Nível da avaliação<select style={{width:'100%',minWidth:0,padding:'9px 10px',border:'1px solid #cbd5e1',borderRadius:8,boxSizing:'border-box'}} value={nivelSelecionado} onChange={e=>{setNivelSelecionado(e.target.value as Nivel);setPagina(0)}}><option value="cliente">Cliente (avaliação geral)</option><option value="planta">Planta</option><option value="instalacao">Instalação</option><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option></select></label>
- {nivelSelecionado==='estacao'&&selecao('Estação de trabalho',estacao,v=>{setEstacao(v);setPagina(0)},estacoes,!posto)}
- </div>
  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><h2>Avaliações da estrutura selecionada</h2><button type="button" disabled={!cliente||!estruturaSelecionada} onClick={novaAvaliacao}>+ Nova avaliação</button></div>
  <div className="ambiental-grid">
  <label>Pesquisar por título<input value={busca} onChange={e=>{setBusca(e.target.value);setPagina(0)}} placeholder="Digite o título da avaliação"/></label>
