@@ -27,6 +27,8 @@ export default function CondicoesAmbientais(){
  const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string;estado_vigencia:string}[]>([]);
  const [tela,setTela]=useState<'lista'|'formulario'>('lista'),[busca,setBusca]=useState(''),[pagina,setPagina]=useState(0),[total,setTotal]=useState(0),[carregandoLista,setCarregandoLista]=useState(false);
  const [filtroNivel,setFiltroNivel]=useState(''),[filtroData,setFiltroData]=useState('');
+ const [nivelSelecionado,setNivelSelecionado]=useState<Nivel>('cliente');
+ const estruturaSelecionada=nivelSelecionado==='cliente'?cliente:nivelSelecionado==='planta'?planta:nivelSelecionado==='instalacao'?instalacao:nivelSelecionado==='posto'?posto:estacao;
  const [seletorRiscoAberto,setSeletorRiscoAberto]=useState(false),[riscoTitulo,setRiscoTitulo]=useState(''),[riscoGrupo,setRiscoGrupo]=useState(''),[riscoObservacoes,setRiscoObservacoes]=useState(''),[riscoNivel,setRiscoNivel]=useState<Nivel>('cliente'),[riscoEstrutura,setRiscoEstrutura]=useState(''),[criandoRisco,setCriandoRisco]=useState(false);
  const [erroRisco,setErroRisco]=useState('');
  const [estruturasRisco,setEstruturasRisco]=useState<Record<'planta'|'instalacao'|'posto'|'estacao',Item[]>>({planta:[],instalacao:[],posto:[],estacao:[]});
@@ -69,17 +71,17 @@ export default function CondicoesAmbientais(){
   })();
   return()=>{ativo=false};
  },[]);
- useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setEmpresaAtiva(!!valido);setTela('lista');setEditandoId(null);setMensagem('');setErro('')}},[clienteAtivo,clientes,cliente]);
+ useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setNivelSelecionado('cliente');setPagina(0);setEmpresaAtiva(!!valido);setTela('lista');setEditandoId(null);setMensagem('');setErro('')}},[clienteAtivo,clientes,cliente]);
  useEffect(()=>{setPlanta('');setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
  useEffect(()=>{setEstacao('');setEstacoes([]);if(posto)supabase().from('estacoes_trabalho').select('id,nome').eq('posto_id',posto).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setEstacoes(data||[])})},[posto]);
  useEffect(()=>{
-  if(!consultoriaId||!cliente)return;
+  if(!consultoriaId||!cliente||!estruturaSelecionada){setAvaliacoes([]);setTotal(0);return}
   let ativo=true;
   (async()=>{
    setCarregandoLista(true);
-   let q=supabase().from('avaliacoes_ambientais').select('id,titulo,data_coleta,nivel,created_at,situacao,estado_vigencia',{count:'exact'}).eq('consultoria_id',consultoriaId).eq('cliente_id',cliente);
+   let q=supabase().from('avaliacoes_ambientais').select('id,titulo,data_coleta,nivel,created_at,situacao,estado_vigencia',{count:'exact'}).eq('consultoria_id',consultoriaId).eq('cliente_id',cliente).eq('nivel',nivelSelecionado).eq('estrutura_id',nivelSelecionado==='cliente'?null:estruturaSelecionada);
    if(busca.trim())q=q.ilike('titulo','%'+busca.trim().replace(/[%_,]/g,'')+'%');
    if(filtroNivel)q=q.eq('nivel',filtroNivel);
    if(filtroData)q=q.eq('data_coleta',filtroData);
@@ -87,7 +89,7 @@ export default function CondicoesAmbientais(){
    if(ativo){if(error)setErro(error.message);else{setAvaliacoes(data||[]);setTotal(count||0)}setCarregandoLista(false)}
   })();
   return()=>{ativo=false};
- },[consultoriaId,cliente,busca,pagina,filtroNivel,filtroData,tela]);
+ },[consultoriaId,cliente,nivelSelecionado,estruturaSelecionada,busca,pagina,filtroNivel,filtroData,tela]);
  useEffect(()=>{
   if(!cliente){setEstruturasRisco({planta:[],instalacao:[],posto:[],estacao:[]});return}
   let ativo=true;
@@ -110,8 +112,9 @@ export default function CondicoesAmbientais(){
  },[cliente]);
  useEffect(()=>{if(!cliente)return;let ativo=true;supabase().from('riscos_identificados').select('id,titulo').eq('cliente_id',cliente).order('titulo').then(({data,error})=>{if(ativo){if(error)setErro(error.message);else setRiscos(data||[])}});return()=>{ativo=false}},[cliente]);
  function novaAvaliacao(){
+  if(!estruturaSelecionada){setErro('Selecione a estrutura física antes de criar a avaliação.');return}
   setEditandoId(null);setEstruturaOriginal(null);setSituacao('rascunho');setEstadoVigencia('em_elaboracao');setRiscosSelecionados([]);setSeletorRiscoAberto(false);setRiscoTitulo('');
-  setTitulo('');setData('');setNivel('cliente');setPlanta('');setInstalacao('');setPosto('');setEstacao('');
+  setTitulo('');setData('');setNivel(nivelSelecionado);
   setMetodologia('');setConclusao('');setCriterios({ruido:'',iluminacao_pontual:'',iluminacao_media:'',temperatura:''});
   setPontos(quatroPontos());setPontoAtivo(0);setFormularioAlterado(false);setErro('');setMensagem('');setTela('formulario');
  }
@@ -238,13 +241,21 @@ export default function CondicoesAmbientais(){
  {erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
  {mensagem&&<p role="status" style={{color:'#166534'}}>{mensagem}</p>}
  {tela==='lista'?<div>
- <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><h2>Avaliações cadastradas</h2><button type="button" onClick={novaAvaliacao}>+ Nova avaliação</button></div>
+ <h2>Selecionar estrutura física</h2><p style={{fontSize:13,color:'#53657a'}}>Selecione o nível e a estrutura que será avaliada. Vigência e histórico são apresentados exclusivamente para esse vínculo.</p>
+ <div className="ambiental-grid">
+ <label>Nível da avaliação<select value={nivelSelecionado} onChange={e=>{setNivelSelecionado(e.target.value as Nivel);setPagina(0)}}><option value="cliente">Cliente</option><option value="planta">Planta</option><option value="instalacao">Instalação</option><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option></select></label>
+ {nivelSelecionado!=='cliente'&&selecao('Planta',planta,v=>{setPlanta(v);setPagina(0)},plantas,!cliente)}
+ {['instalacao','posto','estacao'].includes(nivelSelecionado)&&selecao('Instalação',instalacao,v=>{setInstalacao(v);setPagina(0)},instalacoes,!planta)}
+ {['posto','estacao'].includes(nivelSelecionado)&&selecao('Posto de trabalho',posto,v=>{setPosto(v);setPagina(0)},postos,!instalacao)}
+ {nivelSelecionado==='estacao'&&selecao('Estação de trabalho',estacao,v=>{setEstacao(v);setPagina(0)},estacoes,!posto)}
+ </div>
+ <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><h2>Avaliações da estrutura selecionada</h2><button type="button" disabled={!cliente||!estruturaSelecionada} onClick={novaAvaliacao}>+ Nova avaliação</button></div>
  <div className="ambiental-grid">
  <label>Pesquisar por título<input value={busca} onChange={e=>{setBusca(e.target.value);setPagina(0)}} placeholder="Digite o título da avaliação"/></label>
- <label>Nível<select value={filtroNivel} onChange={e=>{setFiltroNivel(e.target.value);setPagina(0)}}><option value="">Todos</option><option value="cliente">Cliente</option><option value="planta">Planta</option><option value="instalacao">Instalação</option><option value="posto">Posto</option><option value="estacao">Estação</option></select></label>
+
  <label>Data da coleta<input type="date" value={filtroData} onChange={e=>{setFiltroData(e.target.value);setPagina(0)}}/></label>
  </div>
- {!cliente?<p>Selecione uma Empresa Ativa no painel para consultar as avaliações.</p>:carregandoLista?<p>Carregando avaliações...</p>:avaliacoes.length===0?<p>Nenhuma avaliação encontrada para os filtros selecionados.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr><th style={{textAlign:'left'}}>Avaliação</th><th style={{textAlign:'left'}}>Data</th><th style={{textAlign:'left'}}>Nível</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{avaliacoes.map(a=><tr key={a.id} style={{borderTop:'1px solid #e2e8f0'}}><td style={{padding:'12px 6px'}}>{a.titulo}</td><td>{a.data_coleta||'—'}</td><td>{a.nivel}</td><td>{nomeEstado(a.estado_vigencia)}</td><td><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><button type="button" onClick={()=>carregarAvaliacao(a.id)}>{a.estado_vigencia==='em_elaboracao'?'Editar':'Consultar'}</button>{a.estado_vigencia==='em_elaboracao'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('concluir',a.id)}>Concluir avaliação</button>}{a.estado_vigencia==='concluida'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('vigente',a.id)}>Definir vigente</button>}</div></td></tr>)}</tbody></table></div>}
+ {!cliente?<p>Selecione uma Empresa Ativa no painel para consultar as avaliações.</p>:!estruturaSelecionada?<p>Selecione a estrutura para consultar suas avaliações.</p>:carregandoLista?<p>Carregando avaliações...</p>:avaliacoes.length===0?<p>Nenhuma avaliação encontrada para os filtros selecionados.</p>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr><th style={{textAlign:'left'}}>Avaliação</th><th style={{textAlign:'left'}}>Data</th><th style={{textAlign:'left'}}>Nível</th><th>Situação</th><th>Ação</th></tr></thead><tbody>{avaliacoes.map(a=><tr key={a.id} style={{borderTop:'1px solid #e2e8f0'}}><td style={{padding:'12px 6px'}}>{a.titulo}</td><td>{a.data_coleta||'—'}</td><td>{a.nivel}</td><td>{nomeEstado(a.estado_vigencia)}</td><td><div style={{display:'flex',gap:6,flexWrap:'wrap'}}><button type="button" onClick={()=>carregarAvaliacao(a.id)}>{a.estado_vigencia==='em_elaboracao'?'Editar':'Consultar'}</button>{a.estado_vigencia==='em_elaboracao'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('concluir',a.id)}>Concluir avaliação</button>}{a.estado_vigencia==='concluida'&&<button type="button" disabled={salvando} onClick={()=>mudarSituacao('vigente',a.id)}>Definir vigente</button>}</div></td></tr>)}</tbody></table></div>}
  <div style={{display:'flex',gap:12,alignItems:'center',marginTop:16}}><button type="button" disabled={pagina===0||carregandoLista} onClick={()=>setPagina(p=>p-1)}>Anterior</button><span>Página {pagina+1} de {Math.max(1,Math.ceil(total/20))} — {total} avaliações</span><button type="button" disabled={(pagina+1)*20>=total||carregandoLista} onClick={()=>setPagina(p=>p+1)}>Próxima</button></div>
  </div>:<>
  <div style={{display:'flex',gap:12,alignItems:'center',flexWrap:'wrap',marginBottom:12}}><button type="button" onClick={()=>{if(formularioAlterado&&!window.confirm('Descartar as alterações não salvas e voltar à lista?'))return;if(chaveNavegacao)sessionStorage.removeItem(chaveNavegacao);setFormularioAlterado(false);setTela('lista');setErro('');setMensagem('')}}>← Voltar à lista</button><button type="button" onClick={salvar} disabled={salvando||!consultoriaId||bloqueada}>{salvando?'Salvando...':editandoId?'Salvar alterações':'Salvar avaliação'}</button><span style={{fontSize:12,color:'#53657a'}}>{editandoId?'Edição do registro existente. A estrutura vinculada permanece inalterada.':'Nova avaliação ambiental.'}</span></div>
@@ -257,12 +268,12 @@ export default function CondicoesAmbientais(){
  <label>Título da avaliação<input value={titulo} onChange={e=>setTitulo(e.target.value)} placeholder="Ex.: Avaliação ambiental do escritório"/></label>
  <label>Data da coleta<input type="date" value={data} onChange={e=>setData(e.target.value)}/></label>
  
- <label>Vincular a<select value={nivel} disabled={!!editandoId} onChange={e=>setNivel(e.target.value as Nivel)}>{([['cliente','Cliente'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto de trabalho'],['estacao','Estação de trabalho']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
+ <label>Vincular a<select value={nivel} disabled onChange={e=>setNivel(e.target.value as Nivel)}>{([['cliente','Cliente'],['planta','Planta'],['instalacao','Instalação'],['posto','Posto de trabalho'],['estacao','Estação de trabalho']] as const).map(([v,t])=><option key={v} value={v}>{t}</option>)}</select></label>
  {editandoId&&<div style={{padding:'12px 14px',border:'1px solid #cbd5e1',borderRadius:8,background:'#f8fafc',marginBottom:12}}><strong>Ambiente vinculado à avaliação</strong><p style={{margin:'6px 0 0'}}>{nivel==='cliente'?clientes.find(c=>c.id===cliente)?.razao_social||'Empresa Ativa':(estruturasRisco[nivel].find(x=>x.id===estruturaOriginal)?.nome||'Carregando identificação do ambiente...')}</p><small style={{color:'#53657a'}}>Vínculo preservado e não editável nesta avaliação.</small></div>}
- {!editandoId&&nivel!=='cliente'&&selecao('Planta',planta,setPlanta,plantas,!cliente)}
- {!editandoId&&['instalacao','posto','estacao'].includes(nivel)&&selecao('Instalação',instalacao,setInstalacao,instalacoes,!planta)}
- {!editandoId&&['posto','estacao'].includes(nivel)&&selecao('Posto',posto,setPosto,postos,!instalacao)}
- {!editandoId&&nivel==='estacao'&&selecao('Estação',estacao,setEstacao,estacoes,!posto)}
+ {!editandoId&&nivel!=='cliente'&&selecao('Planta',planta,setPlanta,plantas,true)}
+ {!editandoId&&['instalacao','posto','estacao'].includes(nivel)&&selecao('Instalação',instalacao,setInstalacao,instalacoes,true)}
+ {!editandoId&&['posto','estacao'].includes(nivel)&&selecao('Posto',posto,setPosto,postos,true)}
+ {!editandoId&&nivel==='estacao'&&selecao('Estação',estacao,setEstacao,estacoes,true)}
  </div>
  {empresaAtiva&&<p style={{fontSize:12,color:'#53657a',margin:'8px 0'}}>Empresa herdada do Painel da Consultoria. Para alterar, volte ao painel e selecione outra empresa.</p>}
  <h2>Critérios de referência</h2>
