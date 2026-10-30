@@ -27,7 +27,7 @@ export default function CondicoesAmbientais(){
  const [avaliacoes,setAvaliacoes]=useState<{id:string;titulo:string;data_coleta:string|null;nivel:string;created_at:string;situacao:string;estado_vigencia:string}[]>([]);
  const [tela,setTela]=useState<'lista'|'formulario'>('lista'),[busca,setBusca]=useState(''),[pagina,setPagina]=useState(0),[total,setTotal]=useState(0),[carregandoLista,setCarregandoLista]=useState(false);
  const [filtroNivel,setFiltroNivel]=useState(''),[filtroData,setFiltroData]=useState('');
- const [nivelSelecionado,setNivelSelecionado]=useState<Nivel>('cliente');
+ const [nivelSelecionado,setNivelSelecionado]=useState<Nivel>('posto');
  const estruturaSelecionada=nivelSelecionado==='cliente'?cliente:nivelSelecionado==='planta'?planta:nivelSelecionado==='instalacao'?instalacao:nivelSelecionado==='posto'?posto:estacao;
  const [seletorRiscoAberto,setSeletorRiscoAberto]=useState(false),[riscoTitulo,setRiscoTitulo]=useState(''),[riscoGrupo,setRiscoGrupo]=useState(''),[riscoObservacoes,setRiscoObservacoes]=useState(''),[riscoNivel,setRiscoNivel]=useState<Nivel>('cliente'),[riscoEstrutura,setRiscoEstrutura]=useState(''),[criandoRisco,setCriandoRisco]=useState(false);
  const [erroRisco,setErroRisco]=useState('');
@@ -71,7 +71,7 @@ export default function CondicoesAmbientais(){
   })();
   return()=>{ativo=false};
  },[]);
- useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setNivelSelecionado('cliente');setPagina(0);setEmpresaAtiva(!!valido);setTela('lista');setEditandoId(null);setMensagem('');setErro('')}},[clienteAtivo,clientes,cliente]);
+ useEffect(()=>{const valido=clientes.some(c=>c.id===clienteAtivo)?clienteAtivo:'';if(cliente!==valido){setCliente(valido);setNivelSelecionado('posto');setPagina(0);setEmpresaAtiva(!!valido);setTela('lista');setEditandoId(null);setMensagem('');setErro('')}},[clienteAtivo,clientes,cliente]);
  useEffect(()=>{setPlanta('');setPlantas([]);if(cliente)supabase().from('plantas').select('id,nome').eq('cliente_id',cliente).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPlantas(data||[])})},[cliente]);
  useEffect(()=>{setInstalacao('');setInstalacoes([]);if(planta)supabase().from('instalacoes').select('id,nome').eq('planta_id',planta).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setInstalacoes(data||[])})},[planta]);
  useEffect(()=>{setPosto('');setPostos([]);if(instalacao)supabase().from('postos_trabalho').select('id,nome').eq('instalacao_id',instalacao).order('nome').then(({data,error})=>{if(error)setErro(error.message);else setPostos(data||[])})},[instalacao]);
@@ -242,7 +242,14 @@ export default function CondicoesAmbientais(){
  {erro&&<p role="alert" style={{color:'#b42318'}}>{erro}</p>}
  {mensagem&&<p role="status" style={{color:'#166534'}}>{mensagem}</p>}
  {tela==='lista'?<div>
- <div style={{borderLeft:'4px solid #239b65',paddingLeft:12,marginTop:8}}><h2 style={{fontSize:19,margin:'0 0 6px'}}>Selecionar estrutura física</h2><p style={{fontSize:13,margin:0}}>Selecione a planta, instalação e posto; informe a estação quando aplicável. Para avaliações gerais, escolha o nível correspondente. O histórico pertence à estrutura selecionada.</p></div>
+ <div style={{borderLeft:'4px solid #239b65',paddingLeft:12,marginTop:8}}><h2 style={{fontSize:19,margin:'0 0 6px'}}>Selecionar estrutura física</h2><p style={{fontSize:13,margin:0}}>Selecione a planta, instalação e posto; informe a estação quando aplicável. As avaliações e o histórico são exclusivos da estrutura selecionada.</p></div>
+ <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(195px,1fr))',gap:8,margin:'12px 0 14px'}}>
+ {selecao('Planta',planta,v=>{setPlanta(v);setPagina(0)},plantas,!cliente||nivelSelecionado==='cliente')}
+ {selecao('Instalação',instalacao,v=>{setInstalacao(v);setPagina(0)},instalacoes,!planta||['cliente','planta'].includes(nivelSelecionado))}
+ {selecao('Posto de trabalho',posto,v=>{setPosto(v);setPagina(0)},postos,!instalacao||!['posto','estacao'].includes(nivelSelecionado))}
+ <label style={{display:'grid',gap:6,minWidth:0,fontWeight:600,fontSize:13}}>Nível da avaliação<select style={{width:'100%',minWidth:0,padding:'9px 10px',border:'1px solid #cbd5e1',borderRadius:8,boxSizing:'border-box'}} value={nivelSelecionado} onChange={e=>{setNivelSelecionado(e.target.value as Nivel);setPagina(0)}}><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option><option value="cliente">Cliente (geral)</option><option value="planta">Planta (geral)</option><option value="instalacao">Instalação (geral)</option></select></label>
+ {nivelSelecionado==='estacao'&&selecao('Estação de trabalho',estacao,v=>{setEstacao(v);setPagina(0)},estacoes,!posto)}
+ </div>
  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(195px,1fr))',gap:8,margin:'12px 0 14px'}}>
  {nivelSelecionado!=='cliente'&&selecao('Planta',planta,v=>{setPlanta(v);setPagina(0)},plantas,!cliente)}
  {['instalacao','posto','estacao'].includes(nivelSelecionado)&&selecao('Instalação',instalacao,v=>{setInstalacao(v);setPagina(0)},instalacoes,!planta)}
