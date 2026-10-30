@@ -81,7 +81,8 @@ export default function CondicoesAmbientais(){
   let ativo=true;
   (async()=>{
    setCarregandoLista(true);
-   let q=supabase().from('avaliacoes_ambientais').select('id,titulo,data_coleta,nivel,created_at,situacao,estado_vigencia',{count:'exact'}).eq('consultoria_id',consultoriaId).eq('cliente_id',cliente).eq('nivel',nivelSelecionado).eq('estrutura_id',nivelSelecionado==='cliente'?null:estruturaSelecionada);
+   let q=supabase().from('avaliacoes_ambientais').select('id,titulo,data_coleta,nivel,created_at,situacao,estado_vigencia',{count:'exact'}).eq('consultoria_id',consultoriaId).eq('cliente_id',cliente).eq('nivel',nivelSelecionado);
+   q=nivelSelecionado==='cliente'?q.is('estrutura_id',null):q.eq('estrutura_id',estruturaSelecionada);
    if(busca.trim())q=q.ilike('titulo','%'+busca.trim().replace(/[%_,]/g,'')+'%');
    if(filtroNivel)q=q.eq('nivel',filtroNivel);
    if(filtroData)q=q.eq('data_coleta',filtroData);
