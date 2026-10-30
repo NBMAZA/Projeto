@@ -232,7 +232,7 @@ export default function CondicoesAmbientais(){
   setMensagem(av.estado_vigencia==='em_elaboracao'?'Avaliação carregada para edição.':'Avaliação carregada somente para consulta.');
  }
 
- const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label>{nome}<select value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
+ const selecao=(nome:string,valor:string,alterar:(s:string)=>void,itens:Item[],disabled=false)=><label style={{display:'grid',gap:5,minWidth:0,fontWeight:600,fontSize:13}}>{nome}<select style={{width:'100%',minWidth:0,padding:'9px 10px',border:'1px solid #cbd5e1',borderRadius:8,boxSizing:'border-box'}} value={valor} onChange={e=>alterar(e.target.value)} disabled={disabled}><option value="">Selecione</option>{itens.map(i=><option key={i.id} value={i.id}>{i.nome}</option>)}</select></label>;
  const mudarPonto=(id:string,campo:'nome'|'localizacao'|'observacoes',valor:string)=>setPontos(ps=>ps.map(p=>p.id===id?{...p,[campo]:valor}:p));
  const mudarMedicao=(pid:string,mid:string,campo:keyof Omit<Medicao,'id'>,valor:string)=>setPontos(ps=>ps.map(p=>p.id===pid?{...p,medicoes:p.medicoes.map(m=>m.id===mid?{...m,[campo]:valor}:m)}:p));
  return <div className="ergobax-gestao-page" onChangeCapture={e=>{const tag=(e.target as HTMLElement).tagName;if(tela==='formulario'&&!bloqueada&&(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'))setFormularioAlterado(true)}}><header><nav><span className="ergobax-modulo-marca"><img src="/ergobax_logo_transparente.png" alt="ERGOBAX — Plataforma de Inteligência Ergonômica"/><strong>Condições Ambientais</strong></span></nav></header><main><section style={{maxWidth:1100}}>
@@ -244,9 +244,9 @@ export default function CondicoesAmbientais(){
  {tela==='lista'?<div>
  <div style={{borderLeft:'4px solid #239b65',paddingLeft:12,marginTop:8}}><h2 style={{fontSize:19,margin:'0 0 6px'}}>Selecionar estrutura física</h2><p style={{fontSize:13,margin:0}}>Selecione a planta, instalação e posto; informe a estação quando aplicável. As avaliações e o histórico são exclusivos da estrutura selecionada.</p></div>
  <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(195px,1fr))',gap:8,margin:'12px 0 14px'}}>
- {selecao('Planta',planta,v=>{setPlanta(v);setPagina(0)},plantas,!cliente||nivelSelecionado==='cliente')}
- {selecao('Instalação',instalacao,v=>{setInstalacao(v);setPagina(0)},instalacoes,!planta||['cliente','planta'].includes(nivelSelecionado))}
- {selecao('Posto de trabalho',posto,v=>{setPosto(v);setPagina(0)},postos,!instalacao||!['posto','estacao'].includes(nivelSelecionado))}
+ {selecao('Planta',planta,v=>{setPlanta(v);setInstalacao('');setPosto('');setEstacao('');setPagina(0)},plantas,!cliente||nivelSelecionado==='cliente')}
+ {selecao('Instalação',instalacao,v=>{setInstalacao(v);setPosto('');setEstacao('');setPagina(0)},instalacoes,!planta||['cliente','planta'].includes(nivelSelecionado))}
+ {selecao('Posto de trabalho',posto,v=>{setPosto(v);setEstacao('');setPagina(0)},postos,!instalacao||!['posto','estacao'].includes(nivelSelecionado))}
  <label style={{display:'grid',gap:6,minWidth:0,fontWeight:600,fontSize:13}}>Nível da avaliação<select style={{width:'100%',minWidth:0,padding:'9px 10px',border:'1px solid #cbd5e1',borderRadius:8,boxSizing:'border-box'}} value={nivelSelecionado} onChange={e=>{setNivelSelecionado(e.target.value as Nivel);setPagina(0)}}><option value="posto">Posto de trabalho</option><option value="estacao">Estação de trabalho</option><option value="cliente">Cliente (geral)</option><option value="planta">Planta (geral)</option><option value="instalacao">Instalação (geral)</option></select></label>
  {nivelSelecionado==='estacao'&&selecao('Estação de trabalho',estacao,v=>{setEstacao(v);setPagina(0)},estacoes,!posto)}
  </div>
