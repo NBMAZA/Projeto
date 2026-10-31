@@ -13,3 +13,7 @@
 
 /* ILU: diagrama de referência abaixo das leituras de cada grupo */
 .ilu .ilu-input-diagram{display:flex;justify-content:center;align-items:center;margin:14px auto 4px;padding:12px;background:#f8fafc;border:1px solid #dce5ef;border-radius:8px;max-width:440px}.ilu .ilu-input-diagram img{display:block;width:100%;max-width:350px;height:auto;object-fit:contain}@media(max-width:650px){.ilu .ilu-input-diagram{padding:6px;max-width:100%}.ilu .ilu-input-diagram img{max-width:300px}}
+
+/* ILU-01.12: posicionar a figura ligeiramente mais à direita e acima */
+@media(min-width:900px){.ilu .ilu-input-diagram{position:relative;left:58px;top:-52px;margin-bottom:-48px}}
+@media(min-width:651px) and (max-width:899px){.ilu .ilu-input-diagram{position:relative;left:25px;top:-25px;margin-bottom:-20px}}
