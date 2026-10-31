@@ -23,7 +23,7 @@ const grupoBio=(codigo:string):string=>{
 };
 const vazio=():Resposta=>({situacao:'',descricao:'',observacoes:''});
 const inputStyle={width:'100%',padding:7,border:'1px solid #cbd5e1',borderRadius:8,boxSizing:'border-box' as const};
-const btn={padding:'8px 12px',borderRadius:8,border:'1px solid #126d5b',background:'#147d68',color:'white',fontWeight:700,cursor:'pointer'};
+const btn={padding:'8px 12px',borderRadius:6,border:'1px solid #1e40af',background:'#1e40af',color:'white',fontWeight:600,cursor:'pointer'};
 const btnSecundario={...btn,background:'#eef5f9',border:'1px solid #aec4d3',color:'#163b56'};
 export default function ColetaBiomecanicaBio(){
  const {clienteAtivo}=useClienteAtivo();
