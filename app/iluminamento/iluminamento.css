@@ -17,3 +17,6 @@
 /* ILU-01.12: posicionar a figura ligeiramente mais à direita e acima */
 @media(min-width:900px){.ilu .ilu-input-diagram{position:relative;left:58px;top:-52px;margin-bottom:-48px}}
 @media(min-width:651px) and (max-width:899px){.ilu .ilu-input-diagram{position:relative;left:25px;top:-25px;margin-bottom:-20px}}
+
+/* ILU-01.13: disposição lado a lado sem sobreposição */
+.ilu .ilu-measurement-layout{display:grid;grid-template-columns:minmax(260px,1fr) minmax(250px,0.95fr);gap:22px;align-items:start}.ilu .ilu-measurement-fields{min-width:0}.ilu .ilu-measurement-fields .ilu-measurement{grid-template-columns:72px minmax(0,1fr)!important}.ilu .ilu-measurement-fields .ilu-measurement input{width:100%;max-width:220px}.ilu .ilu-measurement-layout .ilu-input-diagram{position:static!important;left:auto!important;top:auto!important;margin:0!important;max-width:100%;width:100%;padding:10px;align-self:start}.ilu .ilu-measurement-layout .ilu-input-diagram img{max-width:100%;width:100%;height:auto}@media(max-width:850px){.ilu .ilu-measurement-layout{grid-template-columns:1fr}.ilu .ilu-measurement-layout .ilu-input-diagram{max-width:380px;margin:12px auto!important}}
