@@ -23,7 +23,7 @@ export default function MapaRiscos(){
  const listaPostos=(postos.data||[]) as unknown as (Node&{instalacao_id:string})[];
  const est=listaPostos.length?await db.from('estacoes_trabalho').select('id,nome,codigo,posto_id').in('posto_id',listaPostos.map(x=>x.id)):{data:[],error:null};if(est.error)throw Error(est.error.message);
  if(cancelado)return;
- setNome(cliente.data?.razao_social||'');setEstrutura({planta:plantas,instalacao:instalacoes.map(x=>({...x,parent:x.planta_id})),posto:listaPostos.map(x=>({...x,parent:x.instalacao_id})),estacao:((est.data||[]) as unknown as (Node&{posto_id:string})[]).map(x=>({...x,parent:x.posto_id}))});
+ setNome(((cliente.data as unknown as {razao_social?:string}|null)?.razao_social)||'');setEstrutura({planta:plantas,instalacao:instalacoes.map(x=>({...x,parent:x.planta_id})),posto:listaPostos.map(x=>({...x,parent:x.instalacao_id})),estacao:((est.data||[]) as unknown as (Node&{posto_id:string})[]).map(x=>({...x,parent:x.posto_id}))});
  const todas=[...(bio.data||[]),...(mob.data||[]),...(amb.data||[]),...(ilu.data||[])] as unknown as Aval[];setAvaliacoes(Object.fromEntries(todas.map(x=>[x.id,x])));
  setRiscos((ris.data||[]) as unknown as Risco[]);
  })().catch(e=>{if(!cancelado)setErro(e instanceof Error?e.message:'Falha ao carregar mapa')}).finally(()=>{if(!cancelado)setLoading(false)});return()=>{cancelado=true}},[clienteAtivo]);
