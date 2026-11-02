@@ -23,3 +23,8 @@
 
 /* ILU-01.13 Ajuste 01: lista de avaliações consistente com a identidade visual */
 .ilu .ilu-lista-registros{display:flex;flex-direction:column;gap:10px}.ilu .ilu-lista-registro{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:14px 16px;border:1px solid #d5dfea;border-radius:9px;background:#f8fbfe;flex-wrap:wrap}.ilu .ilu-lista-info{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}.ilu .ilu-lista-info strong{font-size:16px;color:#173154;overflow-wrap:anywhere}.ilu .ilu-lista-info span{font-size:13px;color:#52647a}.ilu .ilu-lista-editar{display:inline-flex;align-items:center;justify-content:center;padding:10px 16px;background:#236aab;color:#fff;border:0;border-radius:7px;font-weight:700;white-space:nowrap}.ilu .ilu-lista-editar:hover{background:#174f86}@media(max-width:650px){.ilu .ilu-lista-registro{align-items:stretch}.ilu .ilu-lista-editar{width:100%}}
+
+/* ILUM-01.04: estado ativo explicito, independente das classes utilitarias */
+.ilu .ilu-padrao-btn{background:#236aab;color:#fff;border:1px solid #1c5b92}
+.ilu .ilu-padrao-btn[aria-pressed="true"]{background:#16834a!important;color:#fff!important;border:2px solid #086b38!important}
+.ilu .ilu-padrao-btn[aria-pressed="false"]:hover{background:#17598e}
